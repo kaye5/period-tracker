@@ -5,7 +5,9 @@ import { deleteProfile } from "@/lib/repo/profile";
 import { deleteAllPredictions } from "@/lib/repo/predictions";
 import { deleteAllDecisions } from "@/lib/repo/decisions";
 import { deleteCalibrationState } from "@/lib/repo/calibration";
+import { deleteSecurity } from "@/lib/repo/security";
 import { handleUnexpected, jsonError } from "@/app/api/_lib/http";
+import { requireApiUnlock } from "@/lib/security/guard";
 
 const CONFIRM_TOKEN = "DELETE_ALL_DATA";
 const bodySchema = z.object({ confirm: z.literal(CONFIRM_TOKEN) });
@@ -22,6 +24,8 @@ const bodySchema = z.object({ confirm: z.literal(CONFIRM_TOKEN) });
  * which is responsible for prompting the user before ever sending this request.
  */
 export async function POST(request: NextRequest) {
+  const locked = await requireApiUnlock();
+  if (locked) return locked;
   try {
     bodySchema.parse(await request.json());
 
@@ -34,6 +38,8 @@ export async function POST(request: NextRequest) {
       deleteProfile(),
       deleteCalibrationState(),
     ]);
+    // Wipe the screen-lock too, so a full delete leaves no configured PIN behind.
+    await deleteSecurity();
 
     return NextResponse.json({
       deleted: {

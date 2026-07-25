@@ -10,6 +10,7 @@ import { getCalibrationState } from "@/lib/repo/calibration";
 // than going through the still-unswapped GET /api/compute placeholder.
 import { computeEverything } from "@/lib/engine";
 import { ReportScreen } from "@/components/report/ReportScreen";
+import { requirePageUnlock } from "@/lib/security/guard";
 
 export const metadata: Metadata = {
   title: "Report — Period Tracker",
@@ -28,6 +29,8 @@ function todayOnServer(): CivilDate {
 }
 
 export default async function ReportPage() {
+  await requirePageUnlock();
+
   const [dayLogs, profile, decisions, calibration] = await Promise.all([
     listAllDayLogs(),
     getProfileOrDefault(),

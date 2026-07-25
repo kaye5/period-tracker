@@ -3,6 +3,7 @@ import { z } from "zod";
 import { civilDateSchema } from "@/lib/domain/schema";
 import { issuePrediction, listPredictions } from "@/lib/repo/predictions";
 import { handleUnexpected } from "@/app/api/_lib/http";
+import { requireApiUnlock } from "@/lib/security/guard";
 
 const postSchema = z.object({
   issuedOn: civilDateSchema,
@@ -15,6 +16,8 @@ const postSchema = z.object({
  * performance measurement/calibration (see lib/repo/predictions.ts's header). Not the
  * live `PredictionResult` shown on the dashboard — that's app/api/compute's job. */
 export async function GET(request: NextRequest) {
+  const locked = await requireApiUnlock();
+  if (locked) return locked;
   try {
     const { searchParams } = new URL(request.url);
     const resolvedParam = searchParams.get("resolved");
@@ -29,6 +32,8 @@ export async function GET(request: NextRequest) {
 /** POST /api/predictions — records that a prediction was issued, for later resolution
  * (PATCH /api/predictions/:id) once the actual period start is known. */
 export async function POST(request: NextRequest) {
+  const locked = await requireApiUnlock();
+  if (locked) return locked;
   try {
     const body = postSchema.parse(await request.json());
     const prediction = await issuePrediction(body);

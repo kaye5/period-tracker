@@ -1,0 +1,908 @@
+{
+  "version": "5",
+  "dialect": "mysql",
+  "id": "8da10f34-1043-46c1-86e3-fb4e5dcd7911",
+  "prevId": "2ef131dc-ab98-457c-a2b2-971f39a7fa40",
+  "tables": {
+    "calibration": {
+      "name": "calibration",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "tinyint",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "cumulative_adjustment": {
+          "name": "cumulative_adjustment",
+          "type": "double",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 1
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "calibration_id": {
+          "name": "calibration_id",
+          "columns": [
+            "id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraint": {}
+    },
+    "calibration_coverage": {
+      "name": "calibration_coverage",
+      "columns": {
+        "position": {
+          "name": "position",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "covered": {
+          "name": "covered",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "calibration_coverage_position": {
+          "name": "calibration_coverage_position",
+          "columns": [
+            "position"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraint": {}
+    },
+    "day_log_moods": {
+      "name": "day_log_moods",
+      "columns": {
+        "date": {
+          "name": "date",
+          "type": "char(10)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "mood": {
+          "name": "mood",
+          "type": "enum('calm','happy','energetic','irritable','sad','anxious','sensitive','low')",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "day_log_moods_date_day_logs_date_fk": {
+          "name": "day_log_moods_date_day_logs_date_fk",
+          "tableFrom": "day_log_moods",
+          "tableTo": "day_logs",
+          "columnsFrom": [
+            "date"
+          ],
+          "columnsTo": [
+            "date"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "day_log_moods_date_mood_pk": {
+          "name": "day_log_moods_date_mood_pk",
+          "columns": [
+            "date",
+            "mood"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraint": {}
+    },
+    "day_log_pain_interference": {
+      "name": "day_log_pain_interference",
+      "columns": {
+        "date": {
+          "name": "date",
+          "type": "char(10)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "interference": {
+          "name": "interference",
+          "type": "enum('work_or_school','sleep','exercise','social','household')",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "day_log_pain_interference_date_day_logs_date_fk": {
+          "name": "day_log_pain_interference_date_day_logs_date_fk",
+          "tableFrom": "day_log_pain_interference",
+          "tableTo": "day_logs",
+          "columnsFrom": [
+            "date"
+          ],
+          "columnsTo": [
+            "date"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "day_log_pain_interference_date_interference_pk": {
+          "name": "day_log_pain_interference_date_interference_pk",
+          "columns": [
+            "date",
+            "interference"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraint": {}
+    },
+    "day_log_pain_sites": {
+      "name": "day_log_pain_sites",
+      "columns": {
+        "date": {
+          "name": "date",
+          "type": "char(10)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "site": {
+          "name": "site",
+          "type": "enum('lower_abdomen','back','legs','pelvis','head','other')",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "day_log_pain_sites_date_day_logs_date_fk": {
+          "name": "day_log_pain_sites_date_day_logs_date_fk",
+          "tableFrom": "day_log_pain_sites",
+          "tableTo": "day_logs",
+          "columnsFrom": [
+            "date"
+          ],
+          "columnsTo": [
+            "date"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "day_log_pain_sites_date_site_pk": {
+          "name": "day_log_pain_sites_date_site_pk",
+          "columns": [
+            "date",
+            "site"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraint": {}
+    },
+    "day_log_symptoms": {
+      "name": "day_log_symptoms",
+      "columns": {
+        "date": {
+          "name": "date",
+          "type": "char(10)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "symptom": {
+          "name": "symptom",
+          "type": "enum('cramps','breast_tenderness','bloating','headache','fatigue','cravings','gi_change','acne','irritability','low_mood','anxiety','emotional_sensitivity','sleep_change','exercise_change','focus_change','libido_change')",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "day_log_symptoms_date_day_logs_date_fk": {
+          "name": "day_log_symptoms_date_day_logs_date_fk",
+          "tableFrom": "day_log_symptoms",
+          "tableTo": "day_logs",
+          "columnsFrom": [
+            "date"
+          ],
+          "columnsTo": [
+            "date"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "day_log_symptoms_date_symptom_pk": {
+          "name": "day_log_symptoms_date_symptom_pk",
+          "columns": [
+            "date",
+            "symptom"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraint": {}
+    },
+    "day_logs": {
+      "name": "day_logs",
+      "columns": {
+        "date": {
+          "name": "date",
+          "type": "char(10)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "bleeding": {
+          "name": "bleeding",
+          "type": "enum('none','spotting','menstrual')",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "flow": {
+          "name": "flow",
+          "type": "enum('spotting','light','medium','heavy','very_heavy')",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "bleeding_context": {
+          "name": "bleeding_context",
+          "type": "enum('period','intermenstrual','postcoital','unexpected')",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "period_boundary": {
+          "name": "period_boundary",
+          "type": "enum('start','end')",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "clots": {
+          "name": "clots",
+          "type": "enum('none','small','ge_2_5cm')",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "product_changes": {
+          "name": "product_changes",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "fastest_product_change_hours": {
+          "name": "fastest_product_change_hours",
+          "type": "decimal(2,1)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "double_protection": {
+          "name": "double_protection",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "night_change": {
+          "name": "night_change",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "leak_through": {
+          "name": "leak_through",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "pain_severity": {
+          "name": "pain_severity",
+          "type": "enum('none','mild','moderate','severe')",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "painkiller_did_not_help": {
+          "name": "painkiller_did_not_help",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "nothing_to_report": {
+          "name": "nothing_to_report",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "notes": {
+          "name": "notes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "logged_at": {
+          "name": "logged_at",
+          "type": "char(10)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "fertility_cervical_mucus": {
+          "name": "fertility_cervical_mucus",
+          "type": "enum('dry','sticky','creamy','watery','egg_white')",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "fertility_ovulation_pain": {
+          "name": "fertility_ovulation_pain",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "fertility_bbt_celsius": {
+          "name": "fertility_bbt_celsius",
+          "type": "decimal(4,2)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "fertility_opk_result": {
+          "name": "fertility_opk_result",
+          "type": "enum('negative','positive')",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "day_logs_date": {
+          "name": "day_logs_date",
+          "columns": [
+            "date"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraint": {}
+    },
+    "excluded_cycles": {
+      "name": "excluded_cycles",
+      "columns": {
+        "cycle_start_date": {
+          "name": "cycle_start_date",
+          "type": "char(10)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "reason": {
+          "name": "reason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "decided_on": {
+          "name": "decided_on",
+          "type": "char(10)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "excluded_cycles_cycle_start_date": {
+          "name": "excluded_cycles_cycle_start_date",
+          "columns": [
+            "cycle_start_date"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraint": {}
+    },
+    "health_message_decisions": {
+      "name": "health_message_decisions",
+      "columns": {
+        "rule_id": {
+          "name": "rule_id",
+          "type": "varchar(16)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "dismissed": {
+          "name": "dismissed",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "snoozed_until": {
+          "name": "snoozed_until",
+          "type": "char(10)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "decided_on": {
+          "name": "decided_on",
+          "type": "char(10)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "health_message_decisions_rule_id": {
+          "name": "health_message_decisions_rule_id",
+          "columns": [
+            "rule_id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraint": {}
+    },
+    "predictions": {
+      "name": "predictions",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "bigint unsigned",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": true
+        },
+        "issued_on": {
+          "name": "issued_on",
+          "type": "char(10)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "predicted_center": {
+          "name": "predicted_center",
+          "type": "char(10)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "predicted_low": {
+          "name": "predicted_low",
+          "type": "char(10)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "predicted_high": {
+          "name": "predicted_high",
+          "type": "char(10)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "resolved_actual_start": {
+          "name": "resolved_actual_start",
+          "type": "char(10)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "signed_error": {
+          "name": "signed_error",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "covered": {
+          "name": "covered",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "predictions_issued_on_idx": {
+          "name": "predictions_issued_on_idx",
+          "columns": [
+            "issued_on"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "predictions_id": {
+          "name": "predictions_id",
+          "columns": [
+            "id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraint": {}
+    },
+    "profile": {
+      "name": "profile",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "tinyint",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "birth_year": {
+          "name": "birth_year",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "menarche_year": {
+          "name": "menarche_year",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "reported_typical_cycle_length": {
+          "name": "reported_typical_cycle_length",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "reported_typical_period_days": {
+          "name": "reported_typical_period_days",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "reported_regularity": {
+          "name": "reported_regularity",
+          "type": "enum('consistent','variable','unknown')",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "state_pregnant": {
+          "name": "state_pregnant",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "state_delivery_date": {
+          "name": "state_delivery_date",
+          "type": "char(10)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "state_breastfeeding": {
+          "name": "state_breastfeeding",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "state_hormonal_method_kind": {
+          "name": "state_hormonal_method_kind",
+          "type": "enum('combined_pill','progestin_only_pill','patch','ring','hormonal_iud','implant','injection')",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "state_hormonal_method_started_on": {
+          "name": "state_hormonal_method_started_on",
+          "type": "char(10)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "state_copper_iud_inserted_on": {
+          "name": "state_copper_iud_inserted_on",
+          "type": "char(10)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "state_stopped_hormonal_on": {
+          "name": "state_stopped_hormonal_on",
+          "type": "char(10)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "state_perimenopause_self_declared": {
+          "name": "state_perimenopause_self_declared",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "state_menopause_self_declared": {
+          "name": "state_menopause_self_declared",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "state_known_irregular": {
+          "name": "state_known_irregular",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "state_prefer_not_to_say": {
+          "name": "state_prefer_not_to_say",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "settings_fertility_enabled": {
+          "name": "settings_fertility_enabled",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": false
+        },
+        "settings_tier_c_symptoms_enabled": {
+          "name": "settings_tier_c_symptoms_enabled",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": false
+        },
+        "settings_health_awareness_enabled": {
+          "name": "settings_health_awareness_enabled",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": true
+        },
+        "settings_locale": {
+          "name": "settings_locale",
+          "type": "enum('en-US','en-GB')",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'en-US'"
+        },
+        "notif_period_reminder": {
+          "name": "notif_period_reminder",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": false
+        },
+        "notif_fertile_reminder": {
+          "name": "notif_fertile_reminder",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": false
+        },
+        "notif_symptom_reminder": {
+          "name": "notif_symptom_reminder",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": false
+        },
+        "notif_medication_reminder": {
+          "name": "notif_medication_reminder",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": false
+        },
+        "notif_logging_reminder": {
+          "name": "notif_logging_reminder",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": false
+        },
+        "notif_health_awareness": {
+          "name": "notif_health_awareness",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": false
+        },
+        "notif_private_wording": {
+          "name": "notif_private_wording",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "profile_id": {
+          "name": "profile_id",
+          "columns": [
+            "id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraint": {}
+    },
+    "security": {
+      "name": "security",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "tinyint",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "pin_hash": {
+          "name": "pin_hash",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "session_secret": {
+          "name": "session_secret",
+          "type": "varchar(64)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "failed_attempts": {
+          "name": "failed_attempts",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "locked_until": {
+          "name": "locked_until",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "security_id": {
+          "name": "security_id",
+          "columns": [
+            "id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraint": {}
+    },
+    "skip_prompt_decisions": {
+      "name": "skip_prompt_decisions",
+      "columns": {
+        "gap_start_date": {
+          "name": "gap_start_date",
+          "type": "char(10)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "confirmed": {
+          "name": "confirmed",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "inferred_start_date": {
+          "name": "inferred_start_date",
+          "type": "char(10)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "decided_on": {
+          "name": "decided_on",
+          "type": "char(10)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "skip_prompt_decisions_gap_start_date": {
+          "name": "skip_prompt_decisions_gap_start_date",
+          "columns": [
+            "gap_start_date"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraint": {}
+    }
+  },
+  "views": {},
+  "_meta": {
+    "schemas": {},
+    "tables": {},
+    "columns": {}
+  },
+  "internal": {
+    "tables": {},
+    "indexes": {}
+  }
+}

@@ -13,6 +13,7 @@ import { getCalibrationState } from "@/lib/repo/calibration";
 // ============================================================================
 import { computeEverything } from "@/lib/engine";
 import { handleUnexpected, jsonError } from "@/app/api/_lib/http";
+import { requireApiUnlock } from "@/lib/security/guard";
 
 /**
  * GET /api/compute?today=YYYY-MM-DD — the single `EngineOutput` every screen reads from
@@ -21,6 +22,8 @@ import { handleUnexpected, jsonError } from "@/app/api/_lib/http";
  * timezone supply it.
  */
 export async function GET(request: NextRequest) {
+  const locked = await requireApiUnlock();
+  if (locked) return locked;
   try {
     const { searchParams } = new URL(request.url);
     const todayParam = searchParams.get("today");

@@ -130,6 +130,22 @@ rename a field.
 NULL — the ordered `recentCoverage` array. Rewriting calibration replaces all coverage
 rows in one transaction. Defaults must match `DEFAULT_CALIBRATION_STATE`.
 
+### 3.9 `security` (singleton)
+PK `id TINYINT` = 1. Holds the optional 6-digit PIN screen lock (a later addition than the
+original migration — see `drizzle/0001_*.sql`). Columns: `pin_hash varchar(255)` NULL
+(scrypt-derived, format `scrypt$<saltHex>$<hashHex>`; NULL ⇔ no PIN set ⇔ lock off),
+`session_secret varchar(64)` NULL (per-install hex key used to HMAC-sign the unlock
+session cookie; rotated when the PIN is removed to invalidate outstanding sessions),
+`failed_attempts int` NOT NULL DEFAULT 0 and `locked_until bigint` NULL (brute-force
+throttle for `POST /api/security/unlock`; `locked_until` is epoch **milliseconds**, a
+wall-clock instant — NOT the CHAR(10) CivilDate convention used elsewhere). Deliberately a
+separate table from `profile`, not extra `profile` columns, so the hash and signing secret
+never travel inside the `Profile` domain object handed to client components; there is
+correspondingly no `lib/domain/types.ts` shape or Zod schema for this row. Accessed only by
+`lib/repo/security.ts`, the server-side guard `lib/security/guard.ts`, and the
+`app/api/security/**` route handlers. This is a UI screen lock only — it does not encrypt
+data or protect the database (docs/PRIVACY.md).
+
 ## 4. Testing strategy (keeps `pnpm test` green with no DB)
 
 1. **Pure mapping functions** per repo: `lib/repo/<x>.mapping.ts` with `toRows(domain)` →

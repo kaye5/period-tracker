@@ -3,6 +3,7 @@ import { z } from "zod";
 import { civilDateSchema } from "@/lib/domain/schema";
 import { excludeCycle, unexcludeCycle } from "@/lib/repo/decisions";
 import { handleUnexpected } from "@/app/api/_lib/http";
+import { requireApiUnlock } from "@/lib/security/guard";
 
 const postSchema = z.object({
   cycleStartDate: civilDateSchema,
@@ -16,6 +17,8 @@ const deleteSchema = z.object({ cycleStartDate: civilDateSchema });
  * the reason; recomputing stats/predictions to actually exclude it is lib/engine's job,
  * driven by this same `decisions` collection on the next `computeEverything` call. */
 export async function POST(request: NextRequest) {
+  const locked = await requireApiUnlock();
+  if (locked) return locked;
   try {
     const body = postSchema.parse(await request.json());
     const userDecisions = await excludeCycle(body.cycleStartDate, body.reason, body.decidedOn);
@@ -27,6 +30,8 @@ export async function POST(request: NextRequest) {
 
 /** DELETE /api/decisions/exclude-cycle — reverses an exclusion. */
 export async function DELETE(request: NextRequest) {
+  const locked = await requireApiUnlock();
+  if (locked) return locked;
   try {
     const body = deleteSchema.parse(await request.json());
     const userDecisions = await unexcludeCycle(body.cycleStartDate);

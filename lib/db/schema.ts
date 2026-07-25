@@ -274,3 +274,28 @@ export const calibrationCoverage = mysqlTable("calibration_coverage", {
   position: int("position").primaryKey(),
   covered: boolean("covered").notNull(),
 });
+
+// ============================================================================
+// security (singleton) — DB-MIGRATION.md §3.9. Holds the optional 6-digit PIN
+// "screen lock" that gates the app's UI. Deliberately a SEPARATE table from `profile`
+// (not extra `profile` columns) so the PIN hash and signing secret never travel inside
+// the `Profile` domain object that is handed to client components. This is a UI lock
+// only — it does not encrypt data or protect the database (docs/PRIVACY.md); the columns
+// below never leave the server.
+// ============================================================================
+
+export const security = mysqlTable("security", {
+  id: tinyint("id").primaryKey(),
+  // scrypt-derived, formatted "scrypt$<saltHex>$<hashHex>". NULL means no PIN is set and
+  // the lock is off. See lib/security/pin.ts.
+  pinHash: varchar("pin_hash", { length: 255 }),
+  // Per-install random hex key used to HMAC-sign the unlock session cookie
+  // (lib/security/session.ts). Rotating it (on PIN removal) invalidates every existing
+  // session. NULL only while no PIN has ever been set.
+  sessionSecret: varchar("session_secret", { length: 64 }),
+  // Brute-force throttling for the /unlock endpoint. `lockedUntil` is epoch milliseconds
+  // (nullable), matching the route layer's Date.now() clock — never the CivilDate CHAR(10)
+  // convention, since this is a wall-clock instant, not a calendar day.
+  failedAttempts: int("failed_attempts").notNull().default(0),
+  lockedUntil: bigint("locked_until", { mode: "number" }),
+});

@@ -3,6 +3,7 @@ import { isValid as isValidCivilDate, type CivilDate } from "@/lib/date/civil";
 import { deleteDayLog, getDayLog, upsertDayLog } from "@/lib/repo/dayLogs";
 import { dayLogSchema } from "@/lib/domain/schema";
 import { handleUnexpected, jsonError } from "@/app/api/_lib/http";
+import { requireApiUnlock } from "@/lib/security/guard";
 
 interface RouteContext {
   params: Promise<{ date: string }>;
@@ -10,6 +11,8 @@ interface RouteContext {
 
 /** GET /api/day-logs/:date */
 export async function GET(_request: NextRequest, { params }: RouteContext) {
+  const locked = await requireApiUnlock();
+  if (locked) return locked;
   try {
     const { date } = await params;
     if (!isValidCivilDate(date)) return jsonError(400, "`date` must be a valid YYYY-MM-DD date");
@@ -25,6 +28,8 @@ export async function GET(_request: NextRequest, { params }: RouteContext) {
  * the body's `date` field must agree (SPEC.md R7: never silently reinterpret what the
  * caller is asserting). */
 export async function PUT(request: NextRequest, { params }: RouteContext) {
+  const locked = await requireApiUnlock();
+  if (locked) return locked;
   try {
     const { date } = await params;
     if (!isValidCivilDate(date)) return jsonError(400, "`date` must be a valid YYYY-MM-DD date");
@@ -42,6 +47,8 @@ export async function PUT(request: NextRequest, { params }: RouteContext) {
 /** DELETE /api/day-logs/:date — hard delete (SPEC.md's G brief: "actually drop the
  * data, not soft-delete it"). */
 export async function DELETE(_request: NextRequest, { params }: RouteContext) {
+  const locked = await requireApiUnlock();
+  if (locked) return locked;
   try {
     const { date } = await params;
     if (!isValidCivilDate(date)) return jsonError(400, "`date` must be a valid YYYY-MM-DD date");

@@ -3,6 +3,7 @@ import { z } from "zod";
 import { civilDateSchema } from "@/lib/domain/schema";
 import { recordSkipPromptAnswer } from "@/lib/repo/decisions";
 import { handleUnexpected } from "@/app/api/_lib/http";
+import { requireApiUnlock } from "@/lib/security/guard";
 
 const bodySchema = z.object({
   gapStartDate: civilDateSchema,
@@ -16,6 +17,8 @@ const bodySchema = z.object({
  * resurfacing (SPEC.md R7: anomalies produce prompts, never mutations — this is the
  * user's *answer* to one). */
 export async function POST(request: NextRequest) {
+  const locked = await requireApiUnlock();
+  if (locked) return locked;
   try {
     const body = bodySchema.parse(await request.json());
     const userDecisions = await recordSkipPromptAnswer(

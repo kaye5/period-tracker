@@ -3,6 +3,7 @@ import { z } from "zod";
 import { civilDateSchema } from "@/lib/domain/schema";
 import { setHealthMessageDecision } from "@/lib/repo/decisions";
 import { handleUnexpected } from "@/app/api/_lib/http";
+import { requireApiUnlock } from "@/lib/security/guard";
 
 const bodySchema = z.object({
   ruleId: z.string().min(1),
@@ -17,6 +18,8 @@ const bodySchema = z.object({
  * D's lib/engine/health.ts, which decides whether to honor a stored decision at all;
  * this endpoint only ever records what the user asked for. */
 export async function POST(request: NextRequest) {
+  const locked = await requireApiUnlock();
+  if (locked) return locked;
   try {
     const body = bodySchema.parse(await request.json());
     const healthMessageDecision = await setHealthMessageDecision(

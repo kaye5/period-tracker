@@ -3,9 +3,12 @@ import { isValid as isValidCivilDate, type CivilDate } from "@/lib/date/civil";
 import { listDayLogs, upsertDayLog } from "@/lib/repo/dayLogs";
 import { dayLogSchema } from "@/lib/domain/schema";
 import { handleUnexpected, jsonError } from "@/app/api/_lib/http";
+import { requireApiUnlock } from "@/lib/security/guard";
 
 /** GET /api/day-logs?from=YYYY-MM-DD&to=YYYY-MM-DD — all day logs, or a date range. */
 export async function GET(request: NextRequest) {
+  const locked = await requireApiUnlock();
+  if (locked) return locked;
   try {
     const { searchParams } = new URL(request.url);
     const from = searchParams.get("from");
@@ -26,6 +29,8 @@ export async function GET(request: NextRequest) {
 
 /** POST /api/day-logs — create or fully replace the log for the date in the body. */
 export async function POST(request: NextRequest) {
+  const locked = await requireApiUnlock();
+  if (locked) return locked;
   try {
     const body = dayLogSchema.parse(await request.json());
     const dayLog = await upsertDayLog(body);

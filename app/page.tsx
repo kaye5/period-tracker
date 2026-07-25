@@ -8,6 +8,7 @@ import { getUserDecisions, listHealthMessageDecisions } from "@/lib/repo/decisio
 import { getCalibrationState } from "@/lib/repo/calibration";
 import { DashboardScreen } from "@/components/dashboard/DashboardScreen";
 import { buildHealthAwarenessState } from "@/components/dashboard/healthState";
+import { requirePageUnlock } from "@/lib/security/guard";
 
 export const metadata: Metadata = {
   title: "Period Tracker",
@@ -53,6 +54,11 @@ function todayOnServer(): CivilDate {
 }
 
 export default async function HomePage() {
+  // Screen lock (whole-app): if a PIN is configured and this browser has no valid unlock
+  // session, redirect to /unlock before any user data is read or rendered. A no-op when no
+  // PIN is set, so it never blocks a new user reaching onboarding.
+  await requirePageUnlock();
+
   const profile = await getProfile();
   if (profile === null) {
     redirect("/onboarding");

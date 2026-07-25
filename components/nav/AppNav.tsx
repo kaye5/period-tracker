@@ -59,8 +59,10 @@ export function AppNav() {
   const pathname = usePathname() ?? "/";
 
   // Onboarding is a full-screen flow — no nav (SPEC.md U1). Also hide on any not-yet-known
-  // path segment that is part of onboarding.
-  if (pathname.startsWith("/onboarding")) {
+  // path segment that is part of onboarding. The screen-lock (/unlock) is likewise a
+  // full-screen gate: showing the tab bar there would only offer links that redirect
+  // straight back to /unlock.
+  if (pathname.startsWith("/onboarding") || pathname.startsWith("/unlock")) {
     return null;
   }
 

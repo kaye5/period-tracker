@@ -30,6 +30,7 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { PRIVACY_STATEMENT, FERTILITY_DISCLAIMER } from "@/lib/copy/general";
 import { NotificationSettings } from "@/components/settings/NotificationSettings";
 import { DeleteAllDataSheet } from "@/components/settings/DeleteAllDataSheet";
+import { ScreenLockCard } from "@/components/settings/ScreenLockCard";
 import {
   CYCLE_LENGTH_BOUNDS,
   PERIOD_DURATION_BOUNDS,
@@ -121,6 +122,7 @@ export function SettingsScreen() {
         settings={profile.settings}
         onChange={(settings) => save({ ...profile, settings })}
       />
+      <ScreenLockCard />
       <DataCard onDeleteClick={() => setDeleteOpen(true)} />
       <PrivacyCard />
 

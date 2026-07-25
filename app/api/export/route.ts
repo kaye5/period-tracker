@@ -4,6 +4,7 @@ import { listDayLogs } from "@/lib/repo/dayLogs";
 import { getProfileOrDefault } from "@/lib/repo/profile";
 import type { DayLog } from "@/lib/domain/types";
 import { handleUnexpected, jsonError } from "@/app/api/_lib/http";
+import { requireApiUnlock } from "@/lib/security/guard";
 
 /**
  * GET /api/export — selective-inclusion export of recorded data (SPEC.md's G brief:
@@ -97,6 +98,8 @@ function toCsv(logs: DayLog[]): string {
 }
 
 export async function GET(request: NextRequest) {
+  const locked = await requireApiUnlock();
+  if (locked) return locked;
   try {
     const { searchParams } = new URL(request.url);
     const from = searchParams.get("from");

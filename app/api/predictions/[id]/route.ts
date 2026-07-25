@@ -3,6 +3,7 @@ import { z } from "zod";
 import { civilDateSchema } from "@/lib/domain/schema";
 import { resolvePrediction } from "@/lib/repo/predictions";
 import { handleUnexpected, jsonError } from "@/app/api/_lib/http";
+import { requireApiUnlock } from "@/lib/security/guard";
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -14,6 +15,8 @@ const bodySchema = z.object({ actualStart: civilDateSchema });
  * actual observed period start; computes and stores signedError/covered (see
  * lib/repo/predictions.ts's resolvePrediction for the exact definitions). */
 export async function PATCH(request: NextRequest, { params }: RouteContext) {
+  const locked = await requireApiUnlock();
+  if (locked) return locked;
   try {
     const { id } = await params;
     const body = bodySchema.parse(await request.json());

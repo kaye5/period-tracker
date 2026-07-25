@@ -12,6 +12,7 @@ import { getCalibrationState } from "@/lib/repo/calibration";
 import { computeEverything, predictedVsActualSeries } from "@/lib/engine";
 import { parseDatesParam } from "@/components/history/cycleListData";
 import { HistoryScreen } from "@/components/history/HistoryScreen";
+import { requirePageUnlock } from "@/lib/security/guard";
 
 export const metadata: Metadata = {
   title: "History — Period Tracker",
@@ -37,6 +38,8 @@ function todayOnServer(): CivilDate {
 }
 
 export default async function HistoryPage({ searchParams }: HistoryPageProps) {
+  await requirePageUnlock();
+
   const { dates } = await searchParams;
   const highlightedDates = parseDatesParam(dates);
 
