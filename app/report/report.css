@@ -1,0 +1,65 @@
+/*
+ * Print stylesheet for the Report screen (SPEC.md's U4 brief: "a print stylesheet good
+ * enough that browser 'Save as PDF' produces a clinician-presentable document").
+ *
+ * Scoped by the `#printable-report`/`.no-print` selectors this route's own components
+ * use (`components/report/PrintableReport.tsx`, `components/report/ReportScreen.tsx`),
+ * so importing this file globally in `app/report/page.tsx` (Next.js App Router allows a
+ * route segment to import global CSS scoped to when that route is rendered) cannot leak
+ * into any other screen.
+ */
+
+@media print {
+  /* No nav chrome, no controls — only the report itself. */
+  .no-print {
+    display: none !important;
+  }
+
+  /* SPEC.md: "no dark background" — force a light, printable page regardless of the
+     viewer's light/dark preference or explicit theme override. */
+  html,
+  body {
+    background: #ffffff !important;
+  }
+
+  #printable-report {
+    background: #ffffff !important;
+    color: #111111 !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    border-radius: 0 !important;
+  }
+
+  #printable-report * {
+    background: transparent !important;
+    color: #111111 !important;
+    border-color: #999999 !important;
+  }
+
+  /* Tables page-break sensibly: a section never splits its heading from its content,
+     and a table's header repeats on each new printed page. */
+  .report-section {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  table {
+    break-inside: auto;
+    page-break-inside: auto;
+    width: 100%;
+  }
+
+  thead {
+    display: table-header-group;
+  }
+
+  tr {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+}
+
+@page {
+  margin: 1.5cm;
+}

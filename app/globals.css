@@ -1,0 +1,287 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+/*
+ * Theme (SPEC.md §4.5). The app uses shadcn/ui (Base UI) components, so colours are
+ * expressed as shadcn's semantic tokens (--background, --primary, --muted-foreground …)
+ * — but the values are the app's own calm rose / warm-neutral palette, not shadcn's
+ * default neutral. Light + dark are both defined; every text-on-surface pairing clears
+ * WCAG 4.5:1 and every control outline (--input) clears 3:1 against its surface.
+ *
+ * Legacy aliases: the pre-shadcn primitives referenced tokens like `--color-surface`,
+ * `--color-text-muted`, `--color-danger`. Those are re-exported at the bottom of the
+ * @theme block, pointing at the same source variables, so existing markup keeps working
+ * while screens migrate to shadcn utilities. (The hand-rolled inline-SVG charts that
+ * used to consume `--chart-actual`/`--chart-cat-*` directly were replaced by shadcn/ui
+ * chart + recharts — those now-dead vars were removed with them.)
+ *
+ * Dark mode is driven by the CSS variables below (they switch under
+ * prefers-color-scheme, a `.dark` class, or an explicit [data-theme="dark"]). shadcn
+ * components are token-based, so they adapt automatically without needing `dark:`.
+ */
+
+/* Tailwind's `dark:` variant (used by a few shadcn components) keys off .dark or an
+   explicit data-theme="dark". prefers-color-scheme is handled by the media block below. */
+@custom-variant dark (&:where(.dark, .dark *, [data-theme="dark"], [data-theme="dark"] *));
+
+:root {
+  --radius: 0.75rem;
+
+  /* shadcn semantic tokens — calm rose palette (light) */
+  --background: #faf7f5;
+  --foreground: #211a1e;
+  --card: #ffffff;
+  --card-foreground: #211a1e;
+  --popover: #ffffff;
+  --popover-foreground: #211a1e;
+  --primary: #9d174d;
+  --primary-foreground: #ffffff;
+  --secondary: #f1e9ec;
+  --secondary-foreground: #211a1e;
+  --muted: #f1e9ec;
+  --muted-foreground: #6b5f65;
+  --accent: #f1e9ec;
+  --accent-foreground: #211a1e;
+  --destructive: #b3261e;
+  --destructive-foreground: #ffffff;
+  --border: #ded4d8;
+  --input: #8f7d84;
+  --ring: #6d28d9;
+
+  --chart-1: #9d174d;
+  --chart-2: #1d6a96;
+  --chart-3: #6d28d9;
+  --chart-4: #8a5a00;
+  --chart-5: #2f7d32;
+
+  --sidebar: #ffffff;
+  --sidebar-foreground: #211a1e;
+  --sidebar-primary: #9d174d;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #f1e9ec;
+  --sidebar-accent-foreground: #211a1e;
+  --sidebar-border: #ded4d8;
+  --sidebar-ring: #6d28d9;
+
+  /* app extras with no shadcn equivalent */
+  --primary-hover: #7f123e;
+  --warning: #8a5a00;
+  --warning-foreground: #ffffff;
+  --text-inverse: #ffffff;
+  --border-strong: #8f7d84;
+  /* "Today" marker — a distinct teal, deliberately unlike the rose period colour and the
+     violet fertile/ovulation colour so today never reads as either. */
+  --today: #0d9488;
+
+  /* sequential rose ramp for the flow-by-day chart (components/charts/FlowByPeriodDayChart) —
+     flow is ORDERED data (spotting -> very_heavy), so this is a monotonic-lightness ramp,
+     not five categorical hues. Light mode: light -> dark = spotting -> very_heavy. */
+  --chart-flow-1: #f5b8cd;
+  --chart-flow-2: #ef8fb3;
+  --chart-flow-3: #e1568e;
+  --chart-flow-4: #b62a63;
+  --chart-flow-5: #7d1a45;
+
+  --shadow-raised: 0 8px 24px -8px rgb(33 26 30 / 0.25);
+  --touch-target-min: 44px;
+}
+
+/* Dark palette — one set of values, three triggers: OS preference (unless a light
+   override is pinned), a .dark class, or [data-theme="dark"]. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --background: #171217;
+    --foreground: #f2e9ec;
+    --card: #241d22;
+    --card-foreground: #f2e9ec;
+    --popover: #2c232a;
+    --popover-foreground: #f2e9ec;
+    --primary: #f472a0;
+    --primary-foreground: #1a1015;
+    --secondary: #2f262c;
+    --secondary-foreground: #f2e9ec;
+    --muted: #2f262c;
+    --muted-foreground: #b6a8ae;
+    --accent: #2f262c;
+    --accent-foreground: #f2e9ec;
+    --destructive: #f2837a;
+    --destructive-foreground: #1a1015;
+    --border: #4a3f45;
+    --input: #8f7d84;
+    --ring: #c4b5fd;
+
+    --chart-1: #f472a0;
+    --chart-2: #67c2e8;
+    --chart-3: #c4b5fd;
+    --chart-4: #e3b23c;
+    --chart-5: #7ed07f;
+
+    --sidebar: #241d22;
+    --sidebar-foreground: #f2e9ec;
+    --sidebar-primary: #f472a0;
+    --sidebar-primary-foreground: #1a1015;
+    --sidebar-accent: #2f262c;
+    --sidebar-accent-foreground: #f2e9ec;
+    --sidebar-border: #4a3f45;
+    --sidebar-ring: #c4b5fd;
+
+    --primary-hover: #f98cb2;
+    --warning: #e3b23c;
+    --warning-foreground: #1a1015;
+    --text-inverse: #1a1015;
+    --border-strong: #8f7d84;
+    --today: #2dd4bf;
+
+    /* dark mode mirrored so heavier flow reads brighter; still monotonic in lightness. */
+    --chart-flow-1: #4a2035;
+    --chart-flow-2: #6d2a4c;
+    --chart-flow-3: #96386a;
+    --chart-flow-4: #c95c93;
+    --chart-flow-5: #f2a0c2;
+
+    --shadow-raised: 0 8px 24px -8px rgb(0 0 0 / 0.5);
+  }
+}
+
+.dark,
+:root[data-theme="dark"] {
+  --background: #171217;
+  --foreground: #f2e9ec;
+  --card: #241d22;
+  --card-foreground: #f2e9ec;
+  --popover: #2c232a;
+  --popover-foreground: #f2e9ec;
+  --primary: #f472a0;
+  --primary-foreground: #1a1015;
+  --secondary: #2f262c;
+  --secondary-foreground: #f2e9ec;
+  --muted: #2f262c;
+  --muted-foreground: #b6a8ae;
+  --accent: #2f262c;
+  --accent-foreground: #f2e9ec;
+  --destructive: #f2837a;
+  --destructive-foreground: #1a1015;
+  --border: #4a3f45;
+  --input: #8f7d84;
+  --ring: #c4b5fd;
+
+  --chart-1: #f472a0;
+  --chart-2: #67c2e8;
+  --chart-3: #c4b5fd;
+  --chart-4: #e3b23c;
+  --chart-5: #7ed07f;
+
+  --sidebar: #241d22;
+  --sidebar-foreground: #f2e9ec;
+  --sidebar-primary: #f472a0;
+  --sidebar-primary-foreground: #1a1015;
+  --sidebar-accent: #2f262c;
+  --sidebar-accent-foreground: #f2e9ec;
+  --sidebar-border: #4a3f45;
+  --sidebar-ring: #c4b5fd;
+
+  --primary-hover: #f98cb2;
+  --warning: #e3b23c;
+  --warning-foreground: #1a1015;
+  --text-inverse: #1a1015;
+  --border-strong: #8f7d84;
+  --today: #2dd4bf;
+
+  --chart-flow-1: #4a2035;
+  --chart-flow-2: #6d2a4c;
+  --chart-flow-3: #96386a;
+  --chart-flow-4: #c95c93;
+  --chart-flow-5: #f2a0c2;
+
+  --shadow-raised: 0 8px 24px -8px rgb(0 0 0 / 0.5);
+}
+
+@theme inline {
+  /* radius scale */
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+
+  /* shadcn semantic utilities */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-today: var(--today);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-chart-flow-1: var(--chart-flow-1);
+  --color-chart-flow-2: var(--chart-flow-2);
+  --color-chart-flow-3: var(--chart-flow-3);
+  --color-chart-flow-4: var(--chart-flow-4);
+  --color-chart-flow-5: var(--chart-flow-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  /* app extras */
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+
+  /* legacy aliases (pre-shadcn primitives + charts) → same source variables */
+  --color-bg: var(--background);
+  --color-surface: var(--card);
+  --color-surface-raised: var(--popover);
+  --color-text: var(--foreground);
+  --color-text-muted: var(--muted-foreground);
+  --color-text-inverse: var(--text-inverse);
+  --color-border-strong: var(--border-strong);
+  --color-primary-hover: var(--primary-hover);
+  --color-danger: var(--destructive);
+  --color-danger-foreground: var(--destructive-foreground);
+  --color-chip-bg: var(--secondary);
+  --color-chip-selected-bg: var(--primary);
+  --color-chip-selected-foreground: var(--primary-foreground);
+  --color-focus-ring: var(--ring);
+
+  --font-sans:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-mono:
+    ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+}
+
+html {
+  color-scheme: light dark;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+}
+
+/* Visible focus is never suppressed — SPEC.md §4.5 requires keyboard operability. */
+:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
