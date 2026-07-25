@@ -18,6 +18,10 @@ export const metadata: Metadata = {
   // no privacy or storage-location claim.
   description:
     "A menstrual cycle tracker. Predictions are shown as ranges, not single dates.",
+  robots: {
+    index: false,
+    follow: false,
+  },
 };
 
 export default function RootLayout({
