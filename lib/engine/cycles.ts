@@ -85,15 +85,24 @@ function ongoingEpisode(ep: WorkingEpisode): BleedingEpisode {
  *    remains visible in `dayLogs` for other engines, e.g. the insight engine, to use
  *    directly). This makes "spotting never opens a cycle" true by construction: every
  *    episode this function returns has at least one entry in `menstrualDays`.
- * 2. **A calendar date with no `DayLog` entry at all is treated as `bleeding: 'none'`**
- *    for the purposes of the closing rule, for any date that falls between the first
- *    relevant (bleeding-or-boundary) day log and the last logged day overall. Silence
- *    ends a streak the same way an explicit "none" does — the alternative (treating an
- *    unlogged gap as "still bleeding, we just don't know") would let episodes bridge
- *    arbitrarily long unlogged stretches, which is worse. We never synthesize days
- *    *after* the last logged day, so the most recent episode is left open
- *    (`endDate: null`) rather than guessing that the user stopped bleeding — matching
- *    the type's "null = ongoing or never ended" contract.
+ * 2. **A calendar date with no `DayLog` entry at all is never evidence that bleeding
+ *    stopped.** Only an *explicitly logged* `bleeding: 'none'` day counts toward the
+ *    2-day closing streak (choice 3 below); a date with no log at all is transparent —
+ *    it neither advances nor resets the streak. Earlier versions of this function
+ *    treated an unlogged gap the same as an explicit "none", which let a later,
+ *    unrelated log (anything dated after an open period — even a same-day symptom note
+ *    with no bleeding) retroactively fabricate a close across the unlogged days in
+ *    between, closing a period the user never said had ended. Absence of a log records
+ *    nothing; it must not be read as "confirmed not bleeding." We also never let a date
+ *    at or after `today` (the second parameter) contribute to that streak, even when it
+ *    *is* explicitly logged `'none'` — today isn't over yet, so a "none" logged so far
+ *    today is not evidence the day will stay that way. (An explicit
+ *    `periodBoundary: 'end'`, by contrast, is the user directly asserting the period is
+ *    over — that's real information, not an absence, so it closes immediately
+ *    regardless of date; see choice 3.) We never synthesize days *after* the last
+ *    logged day, so the most recent episode is left open (`endDate: null`) rather than
+ *    guessing that the user stopped bleeding — matching the type's "null = ongoing or
+ *    never ended" contract.
  * 3. **Closing rule** (R6, spec brief item 1): an episode does not close on a single
  *    non-bleeding ('none') day. It takes 2+ *consecutive* 'none' days to close it
  *    (`endInferred: true`, `endDate` = the last actual bleeding day), UNLESS the user
@@ -119,7 +128,7 @@ function ongoingEpisode(ep: WorkingEpisode): BleedingEpisode {
  *    'end' override explicitly; this mirrors it symmetrically for 'start' rather than
  *    silently merging two periods the user explicitly told us were separate (R7).
  */
-export function buildEpisodes(dayLogs: DayLog[]): BleedingEpisode[] {
+export function buildEpisodes(dayLogs: DayLog[], today: CivilDate): BleedingEpisode[] {
   if (dayLogs.length === 0) return [];
 
   const byDate = new Map<CivilDate, DayLog>();
@@ -143,9 +152,18 @@ export function buildEpisodes(dayLogs: DayLog[]): BleedingEpisode[] {
   let pendingNoneStreak = 0;
 
   for (const date of walkDates) {
-    const log = byDate.get(date);
-    const bleeding = log?.bleeding ?? "none";
-    const boundary = log?.periodBoundary;
+    const dayLog = byDate.get(date);
+    const bleeding = dayLog?.bleeding ?? "none";
+    const boundary = dayLog?.periodBoundary;
+
+    // A non-bleeding day counts as evidence bleeding stopped only if it is strictly
+    // before `today` — today isn't over yet, so a 'none' logged for today (or a
+    // back-dated future one) must not close the period the user is still having. An
+    // unlogged past day DOES count: the app's own drag-select writes bleeding days
+    // only, so requiring an explicit 'none' merged every period a user ever logged
+    // into one never-ending episode. Positive evidence (menstrual/spotting) and an
+    // explicit `periodBoundary: 'end'` are real assertions, never subject to this guard.
+    const isConfirmedNonBleeding = bleeding === "none" && compare(date, today) < 0;
 
     // Explicit new-period assertion while a previous episode is still open (choice 5
     // above): close the old one first, then fall through to open a fresh one below.
@@ -163,7 +181,7 @@ export function buildEpisodes(dayLogs: DayLog[]): BleedingEpisode[] {
       } else if (bleeding === "spotting") {
         current.spottingDays.push(date);
         noneStreak = 0;
-      } else {
+      } else if (isConfirmedNonBleeding) {
         noneStreak++;
       }
 
@@ -193,7 +211,7 @@ export function buildEpisodes(dayLogs: DayLog[]): BleedingEpisode[] {
       } else if (bleeding === "spotting") {
         pendingSpotting.push(date);
         pendingNoneStreak = 0;
-      } else if (pendingSpotting.length > 0) {
+      } else if (pendingSpotting.length > 0 && isConfirmedNonBleeding) {
         pendingNoneStreak++;
         if (pendingNoneStreak >= 2) {
           pendingSpotting = [];

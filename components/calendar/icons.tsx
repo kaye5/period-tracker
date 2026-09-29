@@ -21,18 +21,9 @@ export function IconDropletSolid({ className, ...rest }: IconProps) {
   );
 }
 
-/** A right-pointing triangle — the FIRST day of a recorded period run (a "start" cue,
- * like a play/begin marker). Distinct silhouette from the end square below so start vs.
- * end is never a position- or colour-only distinction. */
-export function IconPeriodStart({ className, ...rest }: IconProps) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} aria-hidden="true" focusable="false" {...rest}>
-      <path d="M7 4 L19 12 L7 20 Z" fill="currentColor" />
-    </svg>
-  );
-}
-
-/** A filled square — the LAST day of a recorded period run (an "end"/stop cue). */
+/** A filled square — the LAST day of a recorded period run (an "end"/stop cue). The
+ * only period-boundary glyph: the first day of a run needs no badge, since it is simply
+ * the first filled cell. */
 export function IconPeriodEnd({ className, ...rest }: IconProps) {
   return (
     <svg viewBox="0 0 24 24" className={className} aria-hidden="true" focusable="false" {...rest}>
@@ -57,6 +48,26 @@ export function IconDropletOutlineDashed({ className, ...rest }: IconProps) {
   );
 }
 
+/** Double chevron — "the period is expected to CONTINUE here". Deliberately NOT another
+ * droplet: this used to reuse `IconDropletOutlineDashed`, which made an expected
+ * continuation of the period you are having indistinguishable from a prediction of the
+ * next period a month away. Stroke-only (no fill, §4.2), so it never reads as one of the
+ * solid recorded-day glyphs. */
+export function IconPeriodContinues({ className, ...rest }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} aria-hidden="true" focusable="false" {...rest}>
+      <path
+        d="M5 5 L12 12 L5 19 M13 5 L20 12 L13 19"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2.75"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 /** A small filled ring with a hollow centre — recorded spotting. Deliberately a
  * different silhouette from the droplet (not just a smaller/lighter version of it), so
  * spotting vs. a period is never a colour-only or size-only distinction. */
@@ -64,22 +75,6 @@ export function IconSpottingMark({ className, ...rest }: IconProps) {
   return (
     <svg viewBox="0 0 24 24" className={className} aria-hidden="true" focusable="false" {...rest}>
       <circle cx="12" cy="12" r="6" fill="none" stroke="currentColor" strokeWidth="3" />
-    </svg>
-  );
-}
-
-/** Leaf — estimated fertile window. */
-export function IconLeaf({ className, ...rest }: IconProps) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} aria-hidden="true" focusable="false" {...rest}>
-      <path
-        d="M20 4C10 4 4 10 4 19c9 0 15-6 15-15Z"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.75"
-        strokeDasharray="2.5 2"
-      />
-      <path d="M6.5 17.5 18 6" stroke="currentColor" strokeWidth="1.5" strokeDasharray="1.5 1.5" />
     </svg>
   );
 }
@@ -96,12 +91,56 @@ export function IconStar({ className, ...rest }: IconProps) {
   );
 }
 
-/** Small filled square — a day has symptoms, mood, pain, or notes recorded. Distinct
- * silhouette from every bleeding glyph on purpose. */
+/** Three ruled lines — a day has symptoms, mood, pain, or notes recorded. Was an 8x8
+ * square inside a 24-unit box, which rendered as a ~3px dot and shared its silhouette
+ * with `IconPeriodEnd`; ruled lines fill the glyph box and read as "written down" at the
+ * 12px this is actually drawn at. */
 export function IconNoteMark({ className, ...rest }: IconProps) {
   return (
     <svg viewBox="0 0 24 24" className={className} aria-hidden="true" focusable="false" {...rest}>
-      <rect x="8" y="8" width="8" height="8" rx="1.5" fill="currentColor" />
+      {/* Two rules, not three, at stroke 2.5 with 6.5 units of clear space between them:
+          three 3-wide strokes across 24 units left barely a stroke-width of gap, so at the
+          12px this is actually drawn the lines merged into a solid block indistinguishable
+          from the square period-end badge. A backing plate keeps it legible where it
+          overlaps the today ring or the dashed fertile ring. */}
+      <circle cx="12" cy="12" r="11" fill="var(--card)" />
+      <path
+        d="M6 9.5h12M6 16h7"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+/** Dashed underline swatch — estimated follicular phase. Mirrors the dashed bar
+ * `DayCell` draws along a follicular day's bottom edge, so the legend glyph matches
+ * what's actually on the grid. */
+export function IconFollicularUnderline({ className, ...rest }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} aria-hidden="true" focusable="false" {...rest}>
+      <line
+        x1="2"
+        y1="18"
+        x2="22"
+        y2="18"
+        stroke="currentColor"
+        strokeWidth="3"
+        strokeDasharray="8 4"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+/** Solid underline swatch — estimated luteal phase. Distinct line STYLE (solid vs.
+ * dashed), not just colour, from `IconFollicularUnderline` (SPEC.md §4.2). */
+export function IconLutealUnderline({ className, ...rest }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} aria-hidden="true" focusable="false" {...rest}>
+      <line x1="2" y1="18" x2="22" y2="18" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
     </svg>
   );
 }

@@ -11,7 +11,7 @@
 import { useState } from "react";
 import { ChevronDown } from "lucide-react";
 import type { CivilDate } from "@/lib/date/civil";
-import type { CycleStatistics, HitRateSummary, PerformanceSummary } from "@/lib/engine";
+import type { CycleStatistics, CyclePhase, HitRateSummary, PerformanceSummary } from "@/lib/engine";
 import type { FertilityEstimate, HealthMessage, Insight } from "@/lib/domain/types";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -42,6 +42,9 @@ export interface MoreSectionProps {
   stats: CycleStatistics;
   secondaryInsights: readonly Insight[];
   fertility?: FertilityEstimate;
+  /** Today's display phase, or null when it can't be classified. Ignored when
+   * `fertility` is absent. */
+  phase: CyclePhase | null;
   performance: PerformanceSummary;
   nonUrgentHealthMessages: readonly HealthMessage[];
 }
@@ -51,6 +54,7 @@ export function MoreSection({
   stats,
   secondaryInsights,
   fertility,
+  phase,
   performance,
   nonUrgentHealthMessages,
 }: MoreSectionProps) {
@@ -90,7 +94,7 @@ export function MoreSection({
             ))}
           </div>
         ) : null}
-        {fertility ? <FertilityCard fertility={fertility} /> : null}
+        {fertility ? <FertilityCard fertility={fertility} phase={phase} /> : null}
         <PerformanceCard performance={performance} />
         {nonUrgentHealthMessages.length > 0 ? (
           <div className="flex flex-col gap-3">

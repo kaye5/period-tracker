@@ -42,6 +42,11 @@ function log(
   };
 }
 
+/** A "today" comfortably after every date used in the tests below that don't care
+ * about the today-boundary rule specifically — just needs to be later than the
+ * fixture's last date so the closing-streak-vs-today guard never engages by accident. */
+const FAR_FUTURE_TODAY = d("2026-06-01");
+
 const NO_SUPPRESSION: SkipSuppressionState = {
   perimenopause: false,
   postpartum: false,
@@ -100,12 +105,12 @@ function mean(values: number[]): number {
 
 describe("buildEpisodes", () => {
   it("returns nothing for an empty log", () => {
-    expect(buildEpisodes([])).toEqual([]);
+    expect(buildEpisodes([], FAR_FUTURE_TODAY)).toEqual([]);
   });
 
   it("spotting never opens an episode (R6), even surrounded by silence", () => {
     const logs = [log("2026-03-01", "spotting"), log("2026-03-02", "spotting")];
-    expect(buildEpisodes(logs)).toEqual([]);
+    expect(buildEpisodes(logs, FAR_FUTURE_TODAY)).toEqual([]);
   });
 
   it("a 3-day bleed with a single 1-day gap stays one episode", () => {
@@ -118,7 +123,7 @@ describe("buildEpisodes", () => {
       log("2026-03-05", "none"),
       log("2026-03-06", "none"),
     ];
-    const episodes = buildEpisodes(logs);
+    const episodes = buildEpisodes(logs, FAR_FUTURE_TODAY);
     expect(episodes).toHaveLength(1);
     expect(episodes[0].menstrualDays).toEqual([d("2026-03-01"), d("2026-03-03"), d("2026-03-04")]);
     expect(episodes[0].startDate).toBe(d("2026-03-01"));
@@ -135,7 +140,7 @@ describe("buildEpisodes", () => {
       log("2026-03-04", "none"),
       log("2026-03-05", "menstrual"), // a new, separate episode
     ];
-    const episodes = buildEpisodes(logs);
+    const episodes = buildEpisodes(logs, FAR_FUTURE_TODAY);
     expect(episodes).toHaveLength(2);
     expect(episodes[0].endDate).toBe(d("2026-03-02"));
     expect(episodes[0].endInferred).toBe(true);
@@ -148,7 +153,7 @@ describe("buildEpisodes", () => {
       log("2026-03-02", "none"),
       log("2026-03-03", "menstrual"),
     ];
-    const episodes = buildEpisodes(logs);
+    const episodes = buildEpisodes(logs, FAR_FUTURE_TODAY);
     expect(episodes).toHaveLength(1);
     expect(episodes[0].endDate).toBeNull(); // still ongoing — no 2-day close seen
   });
@@ -159,7 +164,7 @@ describe("buildEpisodes", () => {
       log("2026-03-02", "menstrual", { periodBoundary: "end" }),
       log("2026-03-03", "menstrual"), // a new episode — previous one explicitly ended
     ];
-    const episodes = buildEpisodes(logs);
+    const episodes = buildEpisodes(logs, FAR_FUTURE_TODAY);
     expect(episodes).toHaveLength(2);
     expect(episodes[0].endDate).toBe(d("2026-03-02"));
     expect(episodes[0].endInferred).toBe(false);
@@ -175,7 +180,7 @@ describe("buildEpisodes", () => {
       log("2026-03-05", "none"),
       log("2026-03-06", "none"),
     ];
-    const episodes = buildEpisodes(logs);
+    const episodes = buildEpisodes(logs, FAR_FUTURE_TODAY);
     expect(episodes).toHaveLength(1);
     expect(episodes[0].startDate).toBe(d("2026-03-01")); // spans back to the spotting
     expect(episodes[0].spottingDays).toEqual([d("2026-03-01"), d("2026-03-02")]);
@@ -193,7 +198,7 @@ describe("buildEpisodes", () => {
       log("2026-03-22", "none"),
       log("2026-03-23", "none"),
     ];
-    const episodes = buildEpisodes(logs);
+    const episodes = buildEpisodes(logs, FAR_FUTURE_TODAY);
     expect(episodes).toHaveLength(1);
     expect(episodes[0].spottingDays).toEqual([]);
     expect(episodes[0].startDate).toBe(d("2026-03-20"));
@@ -208,27 +213,80 @@ describe("buildEpisodes", () => {
       log("2026-03-05", "none"),
       log("2026-03-06", "none"),
     ];
-    const episodes = buildEpisodes(logs);
+    const episodes = buildEpisodes(logs, FAR_FUTURE_TODAY);
     expect(episodes).toHaveLength(1);
     expect(episodes[0].spottingDays).toEqual([d("2026-03-03"), d("2026-03-04")]);
     expect(episodes[0].endDate).toBe(d("2026-03-04")); // last bleeding-ish (spotting) day
   });
 
-  it("treats an unlogged (missing) day the same as an explicit 'none' for closing", () => {
+  it("treats an unlogged (missing) PAST day the same as an explicit 'none' for closing", () => {
     const logs = [
       log("2026-03-01", "menstrual"),
       // 2026-03-02 and 2026-03-03 are simply absent from dayLogs
       log("2026-03-04", "menstrual"),
     ];
-    const episodes = buildEpisodes(logs);
-    expect(episodes).toHaveLength(2); // the 2-missing-day gap closed the first one
+    const episodes = buildEpisodes(logs, FAR_FUTURE_TODAY);
+    expect(episodes).toHaveLength(2);
     expect(episodes[0].endDate).toBe(d("2026-03-01"));
     expect(episodes[1].startDate).toBe(d("2026-03-04"));
   });
 
+  it("does not merge months of periods when only bleeding days are ever logged", () => {
+    // The app's own drag-select (buildQuickPeriodDayLog) writes `bleeding: 'menstrual'`
+    // and nothing else — no 'none' rows for the days in between, no periodBoundary. If
+    // an unlogged past day could not advance the closing streak, every period a user
+    // ever logged merged into ONE open episode: zero completed cycles, prediction
+    // degraded to a population estimate anchored on their first period ever, and the
+    // calendar painted a months-stale predicted range.
+    const logs = ["2026-04-07", "2026-05-05", "2026-06-02", "2026-09-22"].flatMap((start) =>
+      [0, 1, 2, 3, 4].map((offset) => log(addDays(d(start), offset), "menstrual")),
+    );
+    const episodes = buildEpisodes(logs, d("2026-09-29"));
+    expect(episodes).toHaveLength(4);
+    expect(episodes[0].endDate).toBe(d("2026-04-11"));
+    expect(episodes[3].startDate).toBe(d("2026-09-22"));
+  });
+
+  it("a later, unrelated log does not retroactively close an open period across unlogged days", () => {
+    // The exact reported bug: a period logged Sep 27 only (today = Sep 28, not
+    // declared ended) must stay open. Reproduces the mechanism: a later log dated
+    // after the open period (e.g. a same-day-or-later "nothing to report" symptom
+    // entry with bleeding: 'none') used to extend buildEpisodes's walk far enough that
+    // the *unlogged* days in between (Sep 28, Sep 29) were miscounted as two
+    // consecutive non-bleeding days, fabricating endDate: 2026-09-27 / durationDays: 1.
+    const logs = [
+      log("2026-09-27", "menstrual"),
+      // 2026-09-28 and 2026-09-29 are simply absent — the user never logged them.
+      log("2026-09-30", "none"), // an unrelated later entry (e.g. a symptom-only log)
+    ];
+    const today = d("2026-09-28");
+    const episodes = buildEpisodes(logs, today);
+    expect(episodes).toHaveLength(1);
+    expect(episodes[0].startDate).toBe(d("2026-09-27"));
+    expect(episodes[0].endDate).toBeNull();
+    expect(episodes[0].durationDays).toBeNull();
+    expect(episodes[0].endInferred).toBe(true);
+  });
+
+  it("never closes an episode using today or future days, even if explicitly logged 'none'", () => {
+    // Today isn't over yet — a 'none' logged for today (or later) is not proof
+    // bleeding won't resume later today, so it must not count toward the closing
+    // streak, unlike a 'none' logged for a genuinely past day.
+    const logs = [
+      log("2026-09-27", "menstrual"),
+      log("2026-09-28", "none"), // today
+      log("2026-09-29", "none"), // tomorrow (e.g. a pre-filled/back-dated stray log)
+    ];
+    const today = d("2026-09-28");
+    const episodes = buildEpisodes(logs, today);
+    expect(episodes).toHaveLength(1);
+    expect(episodes[0].endDate).toBeNull();
+    expect(episodes[0].durationDays).toBeNull();
+  });
+
   it("leaves the most recent episode open when logging simply stops", () => {
     const logs = [log("2026-03-01", "menstrual"), log("2026-03-02", "menstrual")];
-    const episodes = buildEpisodes(logs);
+    const episodes = buildEpisodes(logs, FAR_FUTURE_TODAY);
     expect(episodes).toHaveLength(1);
     expect(episodes[0].endDate).toBeNull();
     expect(episodes[0].durationDays).toBeNull();
@@ -240,7 +298,7 @@ describe("buildEpisodes", () => {
       log("2026-03-02", "none"), // only 1 non-bleeding day — would normally bridge
       log("2026-03-03", "menstrual", { periodBoundary: "start" }),
     ];
-    const episodes = buildEpisodes(logs);
+    const episodes = buildEpisodes(logs, FAR_FUTURE_TODAY);
     expect(episodes).toHaveLength(2);
     expect(episodes[0].endDate).toBe(d("2026-03-01"));
     expect(episodes[1].startDate).toBe(d("2026-03-03"));
@@ -394,10 +452,11 @@ describe("regression guard: one merged 2L cycle inflates naive stats, detector c
       logs.push(log(addDays(s, 2), "none"));
       logs.push(log(addDays(s, 3), "none"));
     }
-    const episodes = buildEpisodes(logs);
+    const today = addDays(starts[6], 20);
+    const episodes = buildEpisodes(logs, today);
     expect(episodes).toHaveLength(7);
 
-    const cycles = buildCycles(episodes, profile(), addDays(starts[6], 20), {
+    const cycles = buildCycles(episodes, profile(), today, {
       lHat: L,
       sigmaHat: 1,
     });

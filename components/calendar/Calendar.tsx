@@ -16,11 +16,17 @@
  * keyboard focus, and wiring the drag gesture to a confirmation step before it writes
  * anything.
  */
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
 import { addDays, type CivilDate } from "@/lib/date/civil";
-import type { DayLog, FertilityEstimate, PredictionResult } from "@/lib/domain/types";
+import type {
+  BleedingEpisode,
+  Cycle,
+  DayLog,
+  FertilityEstimate,
+  PredictionResult,
+} from "@/lib/domain/types";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -39,10 +45,11 @@ import {
   IconCheck,
   IconDropletOutlineDashed,
   IconDropletSolid,
-  IconLeaf,
+  IconFollicularUnderline,
+  IconLutealUnderline,
   IconNoteMark,
+  IconPeriodContinues,
   IconPeriodEnd,
-  IconPeriodStart,
   IconSpottingMark,
   IconStar,
 } from "./icons";
@@ -62,13 +69,19 @@ export interface CalendarProps {
   prediction: PredictionResult | null;
   fertility?: FertilityEstimate | null;
   fertilityEnabled: boolean;
+  /** Engine cycles (most-recent-first, `EngineOutput.cycles`) — only used to locate
+   * which cycle's start date a day falls in, for the estimated-phase underline. Optional;
+   * omitted just means no phase shading is shown. */
+  cycles?: Cycle[];
+  /** `EngineOutput.stats.periodDuration` — the user's own typical period length. Drives
+   * the "period expected to continue" days on an ongoing period. */
+  typicalPeriodDays?: number | null;
+  /** `EngineOutput.episodes` — authority for period start/end badges. */
+  episodes?: BleedingEpisode[];
   /** Tapping/activating a day calls this. Logging is always an in-place dialog (there is
    * no /log route), so callers wire this to `useDayLog().open`. */
   onSelectDay: (date: CivilDate) => void;
 }
-
-const SWATCH_RECORDED_PERIOD = "bg-primary";
-const SWATCH_RECORDED_SPOTTING = "bg-primary/60";
 
 export function Calendar({
   year,
@@ -79,6 +92,9 @@ export function Calendar({
   prediction,
   fertility,
   fertilityEnabled,
+  cycles,
+  typicalPeriodDays,
+  episodes,
   onSelectDay,
 }: CalendarProps) {
   const router = useRouter();
@@ -105,8 +121,11 @@ export function Calendar({
         prediction,
         fertility,
         fertilityEnabled,
+        cycles,
+        typicalPeriodDays,
+        episodes,
       }),
-    [displayYear, displayMonth, weekStartsOn, today, dayLogByDate, prediction, fertility, fertilityEnabled],
+    [displayYear, displayMonth, weekStartsOn, today, dayLogByDate, prediction, fertility, fertilityEnabled, cycles, typicalPeriodDays, episodes],
   );
 
   // Keep the roving-tabindex target inside the currently-displayed grid. When a
@@ -233,31 +252,41 @@ export function Calendar({
 
   return (
     <div className="flex flex-col gap-4 rounded-2xl border border-border bg-card p-4 shadow-sm sm:p-5">
-      <div className="flex items-center justify-between gap-2">
+      {/* One row, not two: the month label and "Today" sit on the same line as the arrows.
+          "Today" was a 16px-tall underlined text link — below SPEC.md §4.5's 44px minimum
+          target — and is now a real button. It stays ENABLED on today's own month:
+          `goToday` is idempotent there, and disabling it dropped keyboard focus to
+          <body> the instant it was activated (Base UI renders a real `disabled`
+          attribute, removing the focused element from the tab order), besides hiding the
+          control's existence from anyone tabbing the header on the current month. */}
+      <div className="flex items-center justify-between gap-1">
         <Button variant="ghost" size="icon" aria-label="Previous month" onClick={() => shiftMonth(-1)}>
           <ChevronLeft aria-hidden="true" />
         </Button>
-        <div className="flex flex-col items-center">
-          <h2 className="text-base font-semibold text-foreground" aria-live="polite">
-            {formatMonthYearLabel(displayYear, displayMonth)}
-          </h2>
-          <button
-            type="button"
-            onClick={goToday}
-            className="text-xs font-medium text-primary underline underline-offset-2 hover:no-underline"
-          >
+        <h2 className="text-base font-semibold text-foreground" aria-live="polite">
+          {formatMonthYearLabel(displayYear, displayMonth)}
+        </h2>
+        <div className="flex items-center gap-0.5">
+          <Button variant="ghost" className="px-3" onClick={goToday}>
             Today
-          </button>
+          </Button>
+          <Button variant="ghost" size="icon" aria-label="Next month" onClick={() => shiftMonth(1)}>
+            <ChevronRight aria-hidden="true" />
+          </Button>
         </div>
-        <Button variant="ghost" size="icon" aria-label="Next month" onClick={() => shiftMonth(1)}>
-          <ChevronRight aria-hidden="true" />
-        </Button>
       </div>
 
+      {/* Touch: the grid supports drag-selection (DayCell's onPointerDown), so native
+          text selection must not compete with it. On iOS Safari and Android Chrome a
+          drag across day numbers otherwise starts a text selection, and an iOS long
+          press raises the callout/magnifier. `select-none` emits both the -webkit- and
+          unprefixed user-select; `touch-callout` is iOS-only; `touch-action-manipulation`
+          drops the 300ms double-tap-zoom delay on taps. DayCell is a raw <button>, so it
+          does NOT inherit the `select-none` that components/ui/button.tsx carries. */}
       <div
         role="grid"
         aria-label={`Calendar, ${formatMonthYearLabel(displayYear, displayMonth)}`}
-        className="flex flex-col gap-2.5"
+        className="flex touch-manipulation flex-col gap-2.5 select-none [-webkit-touch-callout:none]"
       >
         <div role="row" className="mb-1 grid grid-cols-7 gap-1">
           {columns.map((col) => (
@@ -294,11 +323,13 @@ export function Calendar({
         ))}
       </div>
 
-      <p className="text-xs text-muted-foreground">
-        Press and drag across days to mark several as a period at once.
-      </p>
+      <p className="text-xs text-muted-foreground">Drag across several days to mark a period.</p>
 
-      <CalendarLegend fertilityEnabled={fertilityEnabled} fertility={fertility} />
+      <CalendarLegend
+        fertilityEnabled={fertilityEnabled}
+        fertility={fertility}
+        hasCycles={(cycles?.length ?? 0) > 0}
+      />
 
       <Sheet
         open={pendingRange != null}
@@ -332,75 +363,137 @@ export function Calendar({
   );
 }
 
-/** Only reference for what every glyph/fill on the grid means (SPEC.md §4.2: colour
- * never carries meaning alone, so the legend pairs a swatch with the same icon and text
- * fragment `describeDayIndicators` puts in each cell's accessible name). Fertility rows
- * only render when enabled, and the calendar-estimate disclaimer sits directly beneath
- * them — never behind a link (SPEC.md: fertility UI "always with its disclaimer
- * adjacent"). */
+/** A miniature of a real day cell — same fill, same outline style, same glyph — so a
+ * legend row shows what is actually on the grid instead of an abstract colour swatch. */
+function CellSample({ className, children }: { className?: string; children?: ReactNode }) {
+  return (
+    <span
+      aria-hidden="true"
+      className={`flex size-4 shrink-0 items-center justify-center rounded-full ${className ?? ""}`}
+    >
+      {children}
+    </span>
+  );
+}
+
+/** The only reference for what every glyph/fill on the grid means (SPEC.md §4.2: colour
+ * never carries meaning alone, so each row pairs the cell's own appearance with the same
+ * text fragment `describeDayIndicators` puts in the accessible name).
+ *
+ * Grouped into short sections with the shared fact in the heading ("Expected — outlined,
+ * never filled"), which is what let most of the paragraph-long per-row descriptions go:
+ * this was one flat list of thirteen rows, i.e. a reference manual rather than a legend.
+ * Merged rows cover markers that only ever make sense as a pair (the two phase
+ * underlines; the two day-log marks). Fertility rows still only render when the feature
+ * is enabled, and the estimate disclaimer stays OUTSIDE the collapsible, adjacent to them
+ * — never behind a toggle. */
 function CalendarLegend({
   fertilityEnabled,
   fertility,
+  hasCycles,
 }: {
   fertilityEnabled: boolean;
   fertility: FertilityEstimate | null | undefined;
+  /** Whether the grid was given cycles — phase markers cannot render without them. */
+  hasCycles: boolean;
 }) {
-  const items: LegendItem[] = [
+  const sections: { title: string; items: LegendItem[] }[] = [
     {
-      icon: <span aria-hidden className="inline-block size-3 rounded-full ring-2 ring-today" />,
-      label: "Today",
+      title: "Recorded — solid fill",
+      items: [
+        {
+          icon: (
+            <CellSample className="bg-primary">
+              <IconDropletSolid className="size-2.5 text-primary-foreground" />
+            </CellSample>
+          ),
+          label: "Period",
+        },
+        {
+          icon: (
+            <CellSample className="bg-primary/60">
+              <IconSpottingMark className="size-2.5 text-primary-foreground" />
+            </CellSample>
+          ),
+          label: "Spotting",
+          description: "Never counted as the start of a period.",
+        },
+        {
+          icon: <IconPeriodEnd className="size-3 text-primary" />,
+          label: "Last day of a period",
+          description: "Mark it in the day log to close the period.",
+        },
+      ],
     },
     {
-      swatchClassName: SWATCH_RECORDED_PERIOD,
-      icon: <IconDropletSolid className="h-3 w-3 text-primary-foreground" />,
-      label: "Period recorded",
-    },
-    {
-      icon: <IconPeriodStart className="h-3 w-3 text-primary" />,
-      label: "Period — first day",
-      description: "The start of a period run.",
-    },
-    {
-      icon: <IconPeriodEnd className="h-3 w-3 text-primary" />,
-      label: "Period — last day",
-      description: "The end of a period run. Mark this in the day log to close the period.",
-    },
-    {
-      swatchClassName: SWATCH_RECORDED_SPOTTING,
-      icon: <IconSpottingMark className="h-3 w-3" />,
-      label: "Spotting recorded",
-      description: "Tracked separately — never counted as the start of a period.",
-    },
-    {
-      icon: <IconDropletOutlineDashed className="h-3 w-3 text-primary" />,
-      label: "Predicted period range",
-      description: "An estimate, shown with a dashed outline and no fill.",
+      title: "Expected — outlined, never filled",
+      items: [
+        {
+          icon: (
+            <CellSample className="border border-dashed border-primary">
+              <IconDropletOutlineDashed className="size-2.5 text-primary" />
+            </CellSample>
+          ),
+          label: "Next period, predicted",
+          description: "Dashed. The dates it could start between are on the next-period card.",
+        },
+        {
+          icon: (
+            <CellSample className="border border-dotted border-primary">
+              <IconPeriodContinues className="size-2.5 text-primary" />
+            </CellSample>
+          ),
+          label: "This period, expected to continue",
+          description: "Dotted, and only as long as your own typical period.",
+        },
+      ],
     },
   ];
 
   if (fertilityEnabled) {
-    items.push(
-      {
-        icon: <IconLeaf className="h-3 w-3 text-chart-3" />,
-        label: "Estimated fertile window",
-      },
-      {
-        icon: <IconStar className="h-3 w-3 text-chart-3" />,
-        label: "Estimated ovulation range",
-      },
-    );
+    sections.push({
+      title: "Estimated",
+      items: [
+        {
+          icon: <CellSample className="border-2 border-dashed border-chart-3" />,
+          label: "Fertile window",
+        },
+        { icon: <IconStar className="size-3 text-chart-3" />, label: "Ovulation" },
+        // The phase row needs `cycles` as well: without them every day's phase is null,
+        // and a legend must never advertise a marker that cannot appear on the grid.
+        ...(hasCycles
+          ? [
+              {
+                icon: (
+                  <>
+                    <IconFollicularUnderline className="size-3 text-chart-4" />
+                    <IconLutealUnderline className="size-3 text-chart-5" />
+                  </>
+                ),
+                label: "Phase, underlined",
+                description: "Dashed before ovulation (follicular), solid after (luteal).",
+              },
+            ]
+          : []),
+      ],
+    });
   }
 
-  items.push(
-    {
-      icon: <IconNoteMark className="h-2.5 w-2.5" />,
-      label: "Symptoms or notes logged",
-    },
-    {
-      icon: <IconCheck className="h-2.5 w-2.5" />,
-      label: "Nothing to report logged",
-    },
-  );
+  sections.push({
+    title: "Other marks",
+    items: [
+      { icon: <CellSample className="ring-2 ring-today" />, label: "Today" },
+      {
+        icon: (
+          <>
+            <IconNoteMark className="size-3 text-muted-foreground" />
+            <IconCheck className="size-3 text-muted-foreground" />
+          </>
+        ),
+        label: "Symptoms or notes logged, or nothing to report",
+      },
+    ],
+  });
 
   return (
     <div className="flex flex-col gap-2">
@@ -417,15 +510,23 @@ function CalendarLegend({
             />
           }
         >
-          Calendar legend
+          What the marks mean
           <ChevronDown
             aria-hidden
             data-icon="inline-end"
             className="text-muted-foreground transition-transform group-data-[panel-open]:rotate-180"
           />
         </CollapsibleTrigger>
-        <CollapsibleContent className="px-4 pb-4">
-          <Legend label="Calendar legend" items={items} />
+        <CollapsibleContent className="flex flex-col gap-4 px-4 pb-4">
+          {sections.map((section) => (
+            <div key={section.title} className="flex flex-col gap-2">
+              {/* A real heading, and the list below deliberately has NO aria-label: the
+                  heading already names it, and doing both made every section announce
+                  its title twice. */}
+              <h3 className="text-xs font-semibold text-muted-foreground">{section.title}</h3>
+              <Legend items={section.items} />
+            </div>
+          ))}
         </CollapsibleContent>
       </Collapsible>
       {fertilityEnabled && fertility ? (

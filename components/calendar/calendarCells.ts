@@ -7,9 +7,21 @@
  * text label SPEC.md §4.2 requires, is decided here and is directly testable.
  */
 import { addDays, monthGrid, type CivilDate } from "@/lib/date/civil";
-import type { DayLog, FertilityEstimate, PredictionResult } from "@/lib/domain/types";
+import type {
+  BleedingEpisode,
+  Cycle,
+  DayLog,
+  FertilityEstimate,
+  PredictionResult,
+} from "@/lib/domain/types";
 import { civilDateParts, formatFullDayLabel } from "./civilDateDisplay";
-import { computeDayIndicators, describeDayIndicators, type DayIndicators } from "./dayIndicators";
+import {
+  computeDayIndicators,
+  describeDayIndicators,
+  expectedPeriodRange,
+  predictedPeriodRange,
+  type DayIndicators,
+} from "./dayIndicators";
 
 export interface CalendarCellData {
   date: CivilDate;
@@ -42,11 +54,24 @@ export interface BuildCalendarWeeksInput {
   prediction: PredictionResult | null | undefined;
   fertility: FertilityEstimate | null | undefined;
   fertilityEnabled: boolean;
+  /** Engine cycles (most-recent-first) — only used to find which cycle's start date a
+   * given day falls in, for phase display. Optional; omitted means no phase shading. */
+  cycles?: readonly Cycle[];
+  /** The user's typical period length, used to show an ongoing period's expected
+   * remaining days instead of closing it early. Omitted means no expectation shown. */
+  typicalPeriodDays?: number | null;
+  /** `EngineOutput.episodes` — authority for period start/end badges. */
+  episodes?: readonly BleedingEpisode[];
 }
 
 export function buildCalendarWeeks(input: BuildCalendarWeeksInput): CalendarCellData[][] {
-  const { year, month, weekStartsOn, today, dayLogByDate, prediction, fertility, fertilityEnabled } = input;
+  const { year, month, weekStartsOn, today, dayLogByDate, prediction, fertility, fertilityEnabled, cycles, typicalPeriodDays, episodes } = input;
   const weeks = monthGrid(year, month, weekStartsOn);
+  const expectedPeriod = expectedPeriodRange(cycles ?? [], typicalPeriodDays, today);
+  // The predicted period on the grid is the predicted BLEEDING SPAN, never
+  // `prediction.low..high` (that band is start-date uncertainty and dashed half the
+  // month) — see `predictedPeriodRange`.
+  const predictedPeriod = predictedPeriodRange(prediction, typicalPeriodDays, today);
 
   return weeks.map((week) =>
     week.map((date, column) => {
@@ -58,10 +83,16 @@ export function buildCalendarWeeks(input: BuildCalendarWeeksInput): CalendarCell
         today,
         dayLog: dayLogByDate.get(date) ?? null,
         previousBleeding: dayLogByDate.get(addDays(date, -1))?.bleeding ?? "none",
-        nextBleeding: dayLogByDate.get(addDays(date, 1))?.bleeding ?? "none",
+        // NO `?? "none"` fallback: undefined means "that day has no log", which is not
+        // the same as "logged as not bleeding" and must not close the period.
+        nextBleeding: dayLogByDate.get(addDays(date, 1))?.bleeding,
         prediction,
         fertility,
         fertilityEnabled,
+        cycles,
+        expectedPeriod,
+        predictedPeriod,
+        episodes,
       });
       const fragments = describeDayIndicators(indicators);
       const accessibleLabel = `${formatFullDayLabel(date, column, weekStartsOn)}. ${fragments.join(", ")}.`;

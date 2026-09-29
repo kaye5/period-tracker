@@ -15,6 +15,7 @@
  * avoid the full banned-word list on its own merits.
  */
 import type { PredictionResult } from "@/lib/domain/types";
+import type { CyclePhase } from "@/lib/engine/fertility";
 
 // ============================================================================
 // Global disclaimer
@@ -78,6 +79,37 @@ export const PREDICTION_SUPPRESSED_MESSAGES: Record<SuppressedReason, string> = 
 
 export const FERTILITY_DISCLAIMER =
   "This is a calendar-based estimate, not a measurement. It uses your recorded period dates and typical timing patterns from published research — it does not use body temperature, ovulation test strips, or any other physical sign. If you're trying to conceive or trying to avoid it, don't rely on this window by itself.";
+
+// ============================================================================
+// Cycle phase display (lib/engine/fertility.ts's CyclePhase — a display partition, not
+// a measurement; see that module's doc comment). Every note below is deliberately
+// hedged ("likely"/"estimated") because a calendar-only app cannot detect ovulation or
+// anovulation (docs/research/01-cycle-prediction.md §2).
+// ============================================================================
+
+export const PHASE_LABELS: Record<CyclePhase, string> = {
+  menstrual: "Menstrual",
+  follicular: "Follicular",
+  ovulatory: "Ovulation window",
+  luteal: "Luteal",
+};
+
+export const PHASE_DASHBOARD_NOTE: Record<CyclePhase, string> = {
+  menstrual: "You're in your period days.",
+  follicular: "You're likely before ovulation.",
+  ovulatory: "Ovulation is estimated around now.",
+  luteal: "You're likely past ovulation.",
+};
+
+// ============================================================================
+// Open (in-progress) periods — the end is genuinely not known yet, and the app must
+// not guess it (see lib/engine/cycles.ts's `endInferred`/`endDate: null` contract).
+// ============================================================================
+
+/** An open period: the end is genuinely not known yet, and the app must not guess it. */
+export const PERIOD_END_UNKNOWN = "Not yet known";
+/** An open period's duration cell. */
+export const PERIOD_DURATION_IN_PROGRESS = "In progress";
 
 // ============================================================================
 // Empty states

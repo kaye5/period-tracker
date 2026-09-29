@@ -181,22 +181,64 @@ describe("buildDayLogsToSave", () => {
     expect(toSave[0].periodBoundary).toBeUndefined();
   });
 
-  it("marks the first and last day of the computed boundary explicitly", () => {
+  it("marks the first and last day of the computed boundary explicitly when the user actually extends it", () => {
+    const byDate = new Map<CivilDate, DayLog>([
+      [d(10), log(d(10), { bleeding: "menstrual" })],
+      [d(11), log(d(11), { bleeding: "menstrual" })],
+    ]);
+    let draft = buildPeriodEditDraft({ start: d(10), end: d(12) }, byDate);
+    // A real edit: the user adds day 12 to the period.
+    draft = setRowBleeding(draft, d(12), "menstrual");
+    const boundary = computeBoundary(draft, d(10));
+    const toSave = buildDayLogsToSave(draft, byDate, boundary, d(20));
+    const byDay = new Map(toSave.map((l) => [l.date, l]));
+    expect(byDay.get(d(10))?.periodBoundary).toBe("start");
+    expect(byDay.get(d(12))?.periodBoundary).toBe("end");
+  });
+
+  it("does NOT fabricate an 'end' boundary when the user merely opens an ongoing period and saves without editing anything", () => {
+    // The exact reported bug: a period logged as still ongoing (no explicit end, no
+    // periodBoundary stored on its last day) gets opened in the edit sheet and saved
+    // with zero changes. Saving must not silently declare the period over.
     const byDate = new Map<CivilDate, DayLog>([
       [d(10), log(d(10), { bleeding: "menstrual" })],
       [d(11), log(d(11), { bleeding: "menstrual" })],
       [d(12), log(d(12), { bleeding: "menstrual" })],
     ]);
     const draft = buildPeriodEditDraft({ start: d(10), end: d(12) }, byDate);
+    const boundary = computeBoundary(draft, d(10)); // {start: d(10), end: d(12)} — still "discovered"
+    const toSave = buildDayLogsToSave(draft, byDate, boundary, d(20));
+    expect(toSave).toHaveLength(0);
+  });
+
+  it("does NOT write 'end' on today — an unfinished day cannot carry the 'period is over' assertion", () => {
+    // Reported bug: a period logged today only, still open. The user opens the edit
+    // sheet to add the day they forgot (a real edit, so the `userEditedBleeding` gate
+    // does not help) and saves. Writing `end` on today closes the episode, which drops
+    // the calendar's "period expected to continue" days and badges today as a last day.
+    const today = d(11);
+    const byDate = new Map<CivilDate, DayLog>([[d(11), log(d(11), { bleeding: "menstrual" })]]);
+    let draft = buildPeriodEditDraft({ start: d(9), end: d(13) }, byDate);
+    draft = setRowBleeding(draft, d(10), "menstrual");
+    const boundary = computeBoundary(draft, d(11));
+    expect(boundary).toEqual({ start: d(10), end: d(11) });
+    const byDay = new Map(buildDayLogsToSave(draft, byDate, boundary, today).map((l) => [l.date, l]));
+    expect(byDay.get(d(10))?.periodBoundary).toBe("start"); // a start IS assertable
+    expect(byDay.get(d(11))?.periodBoundary).toBeUndefined();
+  });
+
+  it("still re-asserts the boundary on unchanged edge days when some other day in the draft was edited", () => {
+    const byDate = new Map<CivilDate, DayLog>([
+      [d(10), log(d(10), { bleeding: "menstrual" })],
+      [d(11), log(d(11), { bleeding: "menstrual" })],
+      [d(12), log(d(12), { bleeding: "menstrual" })],
+    ]);
+    let draft = buildPeriodEditDraft({ start: d(10), end: d(12) }, byDate);
+    draft = setRowFlow(draft, d(11), "heavy");
     const boundary = computeBoundary(draft, d(10));
     const toSave = buildDayLogsToSave(draft, byDate, boundary, d(20));
-    // All three days are unchanged relative to `byDate` except none had periodBoundary
-    // set originally, so all three should now report the (start/mid/end) boundary diff
-    // for the two ends only.
     const byDay = new Map(toSave.map((l) => [l.date, l]));
-    expect(byDay.get(d(10))?.periodBoundary).toBe("start");
     expect(byDay.get(d(12))?.periodBoundary).toBe("end");
-    expect(byDay.get(d(11))?.periodBoundary).toBeUndefined();
   });
 });
 

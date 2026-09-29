@@ -9,6 +9,48 @@
  */
 import { z } from "zod";
 import { isValid as isValidCivilDate, type CivilDate } from "@/lib/date/civil";
+import { MAX_CYCLE, MIN_CYCLE } from "@/lib/engine/constants";
+
+// ============================================================================
+// ---------- self-reported number bounds ----------
+// ============================================================================
+//
+// These live here, at the validation boundary, rather than in the onboarding form that
+// first used them: they are domain rules, and a rule that only the form knows is a rule
+// the API does not enforce. `components/onboarding/onboardingAnswers.ts` re-exports them,
+// so every existing caller is unchanged.
+
+/** MIN_CYCLE/MAX_CYCLE (`lib/engine/constants.ts`, cited to S5/S15) as the outer bounds
+ * for what a user can report as their typical cycle length — anything outside is
+ * discarded by the engine anyway, so rejecting it at entry gives an honest reason instead
+ * of a silently-ignored answer later. */
+export const CYCLE_LENGTH_BOUNDS = { min: MIN_CYCLE, max: MAX_CYCLE };
+
+/** No research-cited bound exists for period *duration* specifically. [choice] — wide
+ * enough to include prolonged bleeding (which the health-awareness rules react to, not
+ * this form) while still catching obvious data-entry mistakes (e.g. "45"). The upper
+ * bound is load-bearing beyond data hygiene: `components/calendar/dayIndicators.ts`
+ * paints "period expected to continue" days from this number, so an unbounded value
+ * marks most of the month as an expected period. */
+export const PERIOD_DURATION_BOUNDS = { min: 1, max: 14 };
+
+export function isValidCycleLengthDays(n: number): boolean {
+  return (
+    Number.isFinite(n) &&
+    Number.isInteger(n) &&
+    n >= CYCLE_LENGTH_BOUNDS.min &&
+    n <= CYCLE_LENGTH_BOUNDS.max
+  );
+}
+
+export function isValidPeriodDurationDays(n: number): boolean {
+  return (
+    Number.isFinite(n) &&
+    Number.isInteger(n) &&
+    n >= PERIOD_DURATION_BOUNDS.min &&
+    n <= PERIOD_DURATION_BOUNDS.max
+  );
+}
 
 // ============================================================================
 // ---------- dates ----------
@@ -173,8 +215,21 @@ export const settingsSchema = z.object({
 export const profileSchema = z.object({
   birthYear: z.number().int().optional(),
   menarcheYear: z.number().int().optional(),
-  reportedTypicalCycleLength: z.number().optional(),
-  reportedTypicalPeriodDays: z.number().optional(),
+  // Bounded, not bare numbers: these are free-typed into a number input, whose `min`/
+  // `max` attributes the browser does not enforce on a typed value, and both feed the
+  // calendar and the engine directly.
+  reportedTypicalCycleLength: z
+    .number()
+    .int()
+    .min(CYCLE_LENGTH_BOUNDS.min)
+    .max(CYCLE_LENGTH_BOUNDS.max)
+    .optional(),
+  reportedTypicalPeriodDays: z
+    .number()
+    .int()
+    .min(PERIOD_DURATION_BOUNDS.min)
+    .max(PERIOD_DURATION_BOUNDS.max)
+    .optional(),
   reportedRegularity: z.enum(["consistent", "variable", "unknown"]).optional(),
   state: lifeStageStateSchema,
   settings: settingsSchema,

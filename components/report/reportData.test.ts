@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { toCivil, type CivilDate } from "@/lib/date/civil";
 import type { BleedingEpisode, Cycle, DayLog, Profile } from "@/lib/domain/types";
+import { PERIOD_DURATION_IN_PROGRESS, PERIOD_END_UNKNOWN } from "@/lib/copy/general";
 import { DEFAULT_REPORT_SELECTION, type ReportSelection } from "./reportSelection";
 import type { ReportRange } from "./reportRange";
 import {
@@ -103,10 +104,28 @@ describe("buildPeriodRows", () => {
     expect(rows).toHaveLength(0);
   });
 
-  it("marks an ongoing episode's end as 'Ongoing'", () => {
+  it("marks an ongoing (genuinely open) episode's end as not yet known", () => {
     const rows = buildPeriodRows([episode({ endDate: null, durationDays: null })], new Map(), range);
-    expect(rows[0].endText).toBe("Ongoing");
-    expect(rows[0].durationText).toBe("Unknown");
+    expect(rows[0].endText).toBe(PERIOD_END_UNKNOWN);
+    expect(rows[0].durationText).toBe(PERIOD_DURATION_IN_PROGRESS);
+  });
+
+  it("marks an inferred (system-guessed) end distinctly from a user-declared one", () => {
+    const declared = buildPeriodRows(
+      [episode({ endDate: d(4), durationDays: 4, endInferred: false })],
+      new Map(),
+      range,
+    );
+    expect(declared[0].endText).not.toContain("estimated");
+    expect(declared[0].durationText).not.toContain("estimated");
+
+    const inferred = buildPeriodRows(
+      [episode({ endDate: d(4), durationDays: 4, endInferred: true })],
+      new Map(),
+      range,
+    );
+    expect(inferred[0].endText).toContain("estimated");
+    expect(inferred[0].durationText).toContain("estimated");
   });
 });
 

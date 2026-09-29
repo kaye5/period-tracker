@@ -1,10 +1,16 @@
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import type { FertilityEstimate } from "@/lib/domain/types";
+import type { CyclePhase } from "@/lib/engine";
+import { PHASE_DASHBOARD_NOTE, PHASE_LABELS } from "@/lib/copy/general";
 import { formatDateRange } from "./format";
 import { FERTILE_WINDOW_HEADLINE } from "./copy";
 
 export interface FertilityCardProps {
   fertility: FertilityEstimate;
+  /** Today's display phase (`lib/engine/fertility.ts`'s `cyclePhase`), or null when it
+   * can't be classified (e.g. today falls outside the current cycle/prediction window).
+   * Null renders nothing extra — the card keeps its current appearance exactly. */
+  phase: CyclePhase | null;
 }
 
 /**
@@ -19,7 +25,7 @@ export interface FertilityCardProps {
  * card, immediately below it), never behind a link (SPEC.md §3's own comment on
  * `FertilityEstimate.disclaimer`).
  */
-export function FertilityCard({ fertility }: FertilityCardProps) {
+export function FertilityCard({ fertility, phase }: FertilityCardProps) {
   return (
     <Card>
       <CardHeader>
@@ -39,6 +45,14 @@ export function FertilityCard({ fertility }: FertilityCardProps) {
               {formatDateRange(fertility.ovulationLow, fertility.ovulationHigh)}
             </dd>
           </div>
+          {phase !== null ? (
+            <div>
+              <dt className="text-muted-foreground">Today</dt>
+              <dd className="font-medium">
+                {PHASE_LABELS[phase]} — {PHASE_DASHBOARD_NOTE[phase]}
+              </dd>
+            </div>
+          ) : null}
         </dl>
         <p className="text-sm text-muted-foreground">{fertility.confidenceNote}</p>
         <p className="rounded-lg border border-border bg-muted p-3 text-xs text-muted-foreground">

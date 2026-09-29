@@ -10,6 +10,12 @@
  *
  * Selection state is carried by Base UI's own `aria-pressed` on each toggle, so screen
  * readers get an accurate per-option state without this component adding anything extra.
+ *
+ * The legend carries an explicit `mb-2` rather than relying on the fieldset's `gap-2`:
+ * a rendered <legend> is pulled out of the fieldset's normal flow and is NOT a flex
+ * item, so `gap` never applies between it and the controls below. shadcn's own
+ * FieldLegend (components/ui/field.tsx) uses `mb-1.5` for the same reason. Do not
+ * "simplify" this away — removing it collapses the label onto the chips.
  */
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { cn } from "@/lib/utils";
@@ -61,7 +67,7 @@ export function ChipGroup<T extends string | number>(props: ChipGroupProps<T>) {
     const selectedKeys = value !== undefined ? [keyFor(value)] : [];
     return (
       <fieldset className="flex flex-col gap-2">
-        <legend className="text-sm font-medium text-foreground">{legend}</legend>
+        <legend className="mb-2 text-sm font-medium text-foreground">{legend}</legend>
         <ToggleGroup
           value={selectedKeys}
           onValueChange={(next) => {
@@ -93,7 +99,7 @@ export function ChipGroup<T extends string | number>(props: ChipGroupProps<T>) {
   const selectedKeys = value.map(keyFor);
   return (
     <fieldset className="flex flex-col gap-2">
-      <legend className="text-sm font-medium text-foreground">{legend}</legend>
+      <legend className="mb-2 text-sm font-medium text-foreground">{legend}</legend>
       <ToggleGroup
         value={selectedKeys}
         multiple

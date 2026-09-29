@@ -390,7 +390,7 @@ export function computeEverything(input: ComputeEverythingInput): EngineResult {
   const { dayLogs, profile, today, decisions, calibration } = input;
 
   // --- 1. Episodes ----------------------------------------------------------
-  const episodes = buildEpisodes(dayLogs);
+  const episodes = buildEpisodes(dayLogs, today);
 
   // --- 2 & 3. Cycles, two-pass (see the doc comment above) ------------------
   const priorParams: SkipDetectionParams = { lHat: MU0_DEFAULT, sigmaHat: SIGMA0 };

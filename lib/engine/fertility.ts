@@ -24,11 +24,11 @@
  * S13 found apps assuming day-14 ovulation were 2-9 days early in 67% of cases.
  */
 
-import { addDays } from "@/lib/date/civil";
+import { addDays, compare } from "@/lib/date/civil";
 import { LUTEAL_MEAN, LUTEAL_SD } from "@/lib/engine/constants";
 import { FERTILITY_DISCLAIMER } from "@/lib/copy/general";
 import { NORMAL_UPPER_QUANTILE, predictiveSpreadDays } from "@/lib/engine/prediction";
-import type { FertilityEstimate, PredictionResult } from "@/lib/domain/types";
+import type { CivilDate, FertilityEstimate, PredictionResult } from "@/lib/domain/types";
 
 // ---------------------------------------------------------------------------
 // Constants local to the fertile-window geometry
@@ -44,7 +44,13 @@ import type { FertilityEstimate, PredictionResult } from "@/lib/domain/types";
  */
 export const FERTILE_DAYS_BEFORE_OVULATION = 5;
 
-/** Days after ovulation that are counted as fertile — oocyte viability is ~1 day. */
+/**
+ * Days after ovulation that are counted as fertile. [choice] Wilcox 1995 (NEJM 333:1517)
+ * found ZERO conceptions from intercourse after ovulation day, and ASRM defines the
+ * fertile window as the 6-day interval ENDING ON ovulation day (D-5..D0) — so this is not
+ * a cited biological span. The +1 is a buffer for ovulation-*estimation* uncertainty (the
+ * estimate is a band, not a measured event), not an extra day of oocyte viability.
+ */
 export const FERTILE_DAYS_AFTER_OVULATION = 1;
 
 /**
@@ -177,4 +183,73 @@ export function fertilityConfidenceNote(
       ? "population averages rather than your own recorded cycles"
       : "your recorded period dates";
   return `This ${fertileWindowDays}-day window is worked out backwards from your predicted next period, using ${basedOn}. It is only as certain as that prediction, and the timing of ovulation varies from cycle to cycle even when a cycle is very regular. ${prediction.confidenceReason}`;
+}
+
+/**
+ * Biologically, the menstrual phase is a SUBSET of the follicular phase (the follicular
+ * phase begins on cycle day 1; bleeding days are follicular days), and ovulation is a
+ * boundary EVENT, not a phase. `CyclePhase` is therefore a mutually-exclusive DISPLAY
+ * partition derived from an ovarian state {follicular|luteal} split at the ovulation
+ * estimate, with bleeding as an overlay that wins the display. The "ovulatory" band is the
+ * estimate's uncertainty interval rendered as a phase, not a physiological phase. Cite:
+ * docs/research/01-cycle-prediction.md §2.
+ */
+export type CyclePhase = "menstrual" | "follicular" | "ovulatory" | "luteal";
+
+/** The ovarian state on its own, without the bleeding overlay — what `ovarianPhase`
+ * returns. */
+export type OvarianPhase = Exclude<CyclePhase, "menstrual">;
+
+export interface CyclePhaseInput {
+  date: CivilDate;
+  /** Start of the cycle `date` belongs to. */
+  cycleStart: CivilDate;
+  /** `prediction.high`; null when there is no prediction. */
+  predictedHigh: CivilDate | null;
+  fertility: FertilityEstimate | null;
+  /** Recorded menstrual bleeding on `date`. */
+  isBleeding: boolean;
+}
+
+/**
+ * Classifies a single date into its display phase.
+ *
+ * IMPORTANT — `fertility` is a single estimate for ONE cycle, derived backwards from the
+ * next predicted period. It carries no information about where ovulation fell in an
+ * earlier cycle, so callers must only pass dates from the CURRENT cycle. `ovarianPhase`'s
+ * cycleStart/predictedHigh guards bound the date against the cycle it was given, but they
+ * cannot detect a date from a *different* cycle: a caller that resolves `cycleStart` per-day (rather than pinning it
+ * to the current cycle) will satisfy both guards for every historical day and render the
+ * whole calendar as "follicular". `computeDayIndicators` pins it; see the `inCurrentCycle`
+ * check there.
+ */
+export function cyclePhase(input: CyclePhaseInput): CyclePhase | null {
+  const ovarian = ovarianPhase(input);
+  if (ovarian === null) return null;
+  return input.isBleeding ? "menstrual" : ovarian;
+}
+
+/**
+ * The OVARIAN state alone, with no bleeding overlay — the same guards and the same
+ * ovulation split as `cyclePhase`, minus the `isBleeding` short-circuit.
+ *
+ * WHY THIS EXISTS SEPARATELY. Biologically the menstrual phase is a SUBSET of the
+ * follicular phase (see this section's type comment), so a recorded period day still HAS
+ * an ovarian state. `cyclePhase` deliberately hides it, because "Today: menstrual phase"
+ * is the right thing for a dashboard card to say. On the calendar grid that same
+ * short-circuit meant a day marked as a period carried no follicular/luteal information
+ * at all and lost its phase underline — the phase simply disappeared on exactly the days
+ * the user looks at most. The calendar therefore asks for the ovarian state and draws the
+ * bleeding fact separately (fill + droplet), which is also what §4.2 wants: one visual
+ * per fact, not one visual for two facts.
+ */
+export function ovarianPhase(input: Omit<CyclePhaseInput, "isBleeding">): OvarianPhase | null {
+  const { date, cycleStart, predictedHigh, fertility } = input;
+
+  if (fertility === null) return null;
+  if (compare(date, cycleStart) < 0) return null;
+  if (predictedHigh !== null && compare(date, predictedHigh) > 0) return null;
+  if (compare(date, fertility.ovulationLow) < 0) return "follicular";
+  if (compare(date, fertility.ovulationHigh) <= 0) return "ovulatory";
+  return "luteal";
 }

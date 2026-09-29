@@ -86,6 +86,13 @@ export default async function HomePage() {
   // computed EngineResult does not carry. Week start follows locale: en-GB starts Monday,
   // en-US (and the default) starts Sunday.
   const weekStartsOn: 0 | 1 = profile.settings.locale === "en-GB" ? 1 : 0;
+  // Own history first, then the user's own onboarding answer. A first period has no
+  // COMPLETED episode, so `stats.periodDuration` is null exactly when the "expected to
+  // continue" hint is most useful — the fallback is what makes it visible then.
+  const typicalPeriodDays: number | null =
+    output.stats.periodDuration !== null
+      ? Math.round(output.stats.periodDuration.center)
+      : (profile.reportedTypicalPeriodDays ?? null);
 
   return (
     <DashboardScreen
@@ -95,6 +102,7 @@ export default async function HomePage() {
         dayLogs,
         fertilityEnabled: profile.settings.fertilityEnabled,
         weekStartsOn,
+        typicalPeriodDays,
       }}
     />
   );

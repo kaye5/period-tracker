@@ -13,6 +13,8 @@ import { civilDateParts } from "@/components/calendar/civilDateDisplay";
 import { useDayLog } from "@/components/daylog/DayLogDialogProvider";
 import type { CivilDate } from "@/lib/date/civil";
 import type {
+  BleedingEpisode,
+  Cycle,
   DayLog,
   FertilityEstimate,
   PredictionResult,
@@ -27,6 +29,13 @@ export interface QuickLogProps {
    * FertilityEstimate; absent/undefined when the feature is off. */
   fertility?: FertilityEstimate | null;
   fertilityEnabled: boolean;
+  /** Needed by the calendar to resolve each day's cycle phase; without it every day's
+   * phase is null and the follicular/luteal markers never render. */
+  cycles?: Cycle[];
+  /** The user's typical period length, for the "period expected to continue" days. */
+  typicalPeriodDays?: number | null;
+  /** `EngineOutput.episodes` — authority for period start/end badges. */
+  episodes?: BleedingEpisode[];
 }
 
 export function QuickLog({
@@ -36,6 +45,9 @@ export function QuickLog({
   prediction,
   fertility,
   fertilityEnabled,
+  cycles,
+  typicalPeriodDays,
+  episodes,
 }: QuickLogProps) {
   const { open } = useDayLog();
   const { year, month } = civilDateParts(today);
@@ -56,6 +68,9 @@ export function QuickLog({
         prediction={prediction}
         fertility={fertility}
         fertilityEnabled={fertilityEnabled}
+        cycles={cycles}
+        typicalPeriodDays={typicalPeriodDays}
+        episodes={episodes}
         onSelectDay={open}
       />
     </div>

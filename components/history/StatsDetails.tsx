@@ -80,7 +80,7 @@ export function StatsDetails({ stats }: StatsDetailsProps) {
                   <div className="overflow-x-auto">
                     <table className="w-full min-w-max border-collapse text-left text-sm">
                       <caption className="sr-only">
-                        How often each symptom was logged, by phase of the cycle
+                        How often each symptom was logged, by cycle-day comparison window
                       </caption>
                       <thead>
                         <tr>

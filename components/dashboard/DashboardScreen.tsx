@@ -16,6 +16,7 @@
 import type { CivilDate } from "@/lib/date/civil";
 import type { DayLog } from "@/lib/domain/types";
 import type { EngineResult } from "@/lib/engine";
+import { cyclePhase } from "@/lib/engine";
 import { QuickLog } from "./QuickLog";
 import {
   buildCurrentStatusCard,
@@ -40,6 +41,9 @@ export interface DashboardCalendarData {
   dayLogs: DayLog[];
   fertilityEnabled: boolean;
   weekStartsOn: 0 | 1;
+  /** Resolved at the page: `stats.periodDuration` when a completed period exists, else
+   * the user's own onboarding answer. Drives the "period expected to continue" days. */
+  typicalPeriodDays: number | null;
 }
 
 export interface DashboardScreenProps {
@@ -71,8 +75,27 @@ function DashboardCalendar({
         calendar.fertilityEnabled && "fertility" in output ? output.fertility : null
       }
       fertilityEnabled={calendar.fertilityEnabled}
+      cycles={output.cycles}
+      typicalPeriodDays={calendar.typicalPeriodDays}
+      episodes={output.episodes}
     />
   );
+}
+
+/** Today's display phase (`lib/engine/fertility.ts`'s `cyclePhase`) for the fertility
+ * card. Null when there's no in-progress cycle to anchor it to — `cyclePhase` itself
+ * also returns null once `fertility` is absent, so the two null paths compose safely. */
+function todaysPhase(output: EngineResult, today: CivilDate, dayLogs: readonly DayLog[]) {
+  const currentCycle = output.cycles.find((c) => c.status === "in_progress");
+  if (currentCycle === undefined) return null;
+  const isBleeding = dayLogs.some((log) => log.date === today && log.bleeding === "menstrual");
+  return cyclePhase({
+    date: today,
+    cycleStart: currentCycle.startDate,
+    predictedHigh: output.prediction.high,
+    fertility: output.fertility ?? null,
+    isBleeding,
+  });
 }
 
 export function DashboardScreen({ output, today, calendar }: DashboardScreenProps) {
@@ -132,6 +155,7 @@ export function DashboardScreen({ output, today, calendar }: DashboardScreenProp
               selectPersonalPatternInsight(output.insights).secondary
             }
             fertility={"fertility" in output ? output.fertility : undefined}
+            phase={todaysPhase(output, today, calendar.dayLogs)}
             performance={output.performance}
             nonUrgentHealthMessages={nonUrgentMessages}
           />

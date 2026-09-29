@@ -12,8 +12,11 @@ export interface LegendItem {
 
 export interface LegendProps {
   items: LegendItem[];
-  /** Accessible name for the list, e.g. "Calendar legend". */
-  label: string;
+  /** Accessible name for the list, e.g. "Calendar legend". Omit when a visible heading
+   * immediately precedes the list and already names it — passing it anyway makes a
+   * screen reader announce the same words twice, once for the heading and once for the
+   * list. */
+  label?: string;
 }
 
 /**
@@ -26,15 +29,18 @@ export function Legend({ items, label }: LegendProps) {
     <ul aria-label={label} className="flex flex-col gap-2">
       {items.map((item, index) => (
         <li key={index} className="flex items-start gap-2 text-sm text-foreground">
-          <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center">
+          <span className="mt-0.5 flex h-4 min-w-4 shrink-0 items-center justify-center gap-1">
             {item.swatchClassName ? (
               <span
                 aria-hidden="true"
                 className={["inline-block h-3 w-3 rounded-full", item.swatchClassName].join(" ")}
               />
             ) : null}
+            {/* `gap-1` on the inner span too: a row may pass two glyphs in a fragment,
+                and those land inside THIS span, where the outer gap cannot reach them —
+                they rendered flush and read as one marker. */}
             {item.icon ? (
-              <span aria-hidden="true" className="flex items-center">
+              <span aria-hidden="true" className="flex items-center gap-1">
                 {item.icon}
               </span>
             ) : null}

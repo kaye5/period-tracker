@@ -14,6 +14,7 @@
  * `components/report/reportSelection.ts`'s docstring).
  */
 import { compare, type CivilDate } from "@/lib/date/civil";
+import { PERIOD_DURATION_IN_PROGRESS, PERIOD_END_UNKNOWN } from "@/lib/copy/general";
 import type {
   BleedingContext,
   BleedingEpisode,
@@ -107,14 +108,25 @@ export function buildPeriodRows(
     .filter((e) => overlapsRange(e.startDate, e.endDate ?? e.startDate, range))
     .slice()
     .sort((a, b) => compare(a.startDate, b.startDate))
-    .map((e) => ({
-      startDate: e.startDate,
-      startText: formatCivilDate(e.startDate),
-      endText: e.endDate ? formatCivilDate(e.endDate) : "Ongoing",
-      durationText: e.durationDays === null ? "Unknown" : `${e.durationDays} day${e.durationDays === 1 ? "" : "s"}`,
-      flowLevelsText: flowLevelsForEpisode(e, dayLogsByDate),
-      endInferred: e.endInferred,
-    }));
+    .map((e) => {
+      // An inferred end (the system's 2-day-no-bleeding-logged rule) is a best guess,
+      // not something the user asserted with an explicit "last day" tap — it must
+      // never be presented identically to a user-declared end date (SPEC.md R9-style
+      // discipline: don't overclaim). `e.endDate === null` means genuinely open (no
+      // guess at all); that case uses PERIOD_END_UNKNOWN instead of a fabricated date.
+      const inferredSuffix = e.endDate !== null && e.endInferred ? " (estimated)" : "";
+      return {
+        startDate: e.startDate,
+        startText: formatCivilDate(e.startDate),
+        endText: e.endDate === null ? PERIOD_END_UNKNOWN : `${formatCivilDate(e.endDate)}${inferredSuffix}`,
+        durationText:
+          e.durationDays === null
+            ? PERIOD_DURATION_IN_PROGRESS
+            : `${e.durationDays} day${e.durationDays === 1 ? "" : "s"}${inferredSuffix}`,
+        flowLevelsText: flowLevelsForEpisode(e, dayLogsByDate),
+        endInferred: e.endInferred,
+      };
+    });
 }
 
 // ============================================================================

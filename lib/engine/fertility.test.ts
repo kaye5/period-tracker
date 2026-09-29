@@ -8,6 +8,8 @@ import {
   CONFIDENCE_EXTRA_DAYS,
   FERTILE_DAYS_AFTER_OVULATION,
   FERTILE_DAYS_BEFORE_OVULATION,
+  cyclePhase,
+  ovarianPhase,
   estimateFertility,
 } from "@/lib/engine/fertility";
 import { NORMAL_UPPER_QUANTILE, predictiveSpreadDays } from "@/lib/engine/prediction";
@@ -264,5 +266,114 @@ describe("estimateFertility — the arithmetic of STEP 5", () => {
       fertilityEnabled: true,
     });
     expect(estimate?.confidenceNote).toContain("population averages");
+  });
+});
+
+describe("cyclePhase", () => {
+  const CYCLE_START = d("2026-08-01");
+  const OVULATION_LOW = d("2026-08-14");
+  const OVULATION_HIGH = d("2026-08-17");
+  const PREDICTED_HIGH = d("2026-08-30");
+
+  const fertility = {
+    ovulationLow: OVULATION_LOW,
+    ovulationHigh: OVULATION_HIGH,
+    fertileLow: addDays(OVULATION_LOW, -FERTILE_DAYS_BEFORE_OVULATION),
+    fertileHigh: addDays(OVULATION_HIGH, FERTILE_DAYS_AFTER_OVULATION),
+    confidenceNote: "note",
+    disclaimer: FERTILITY_DISCLAIMER,
+  };
+
+  const phaseOn = (date: CivilDate, overrides: Partial<Parameters<typeof cyclePhase>[0]> = {}) =>
+    cyclePhase({
+      date,
+      cycleStart: CYCLE_START,
+      predictedHigh: PREDICTED_HIGH,
+      fertility,
+      isBleeding: false,
+      ...overrides,
+    });
+
+  it("returns null when there is no fertility estimate", () => {
+    expect(phaseOn(d("2026-08-10"), { fertility: null })).toBeNull();
+  });
+
+  it("returns null for a date before the cycle it belongs to", () => {
+    expect(phaseOn(addDays(CYCLE_START, -1))).toBeNull();
+  });
+
+  it("returns null for a date after the predicted upper bound", () => {
+    expect(phaseOn(addDays(PREDICTED_HIGH, 1))).toBeNull();
+  });
+
+  it("treats predictedHigh: null as no upper bound at all", () => {
+    // Far beyond any realistic predictedHigh; without the null-means-unbounded rule this
+    // would incorrectly be treated as "everything is null".
+    expect(phaseOn(addDays(CYCLE_START, 500), { predictedHigh: null })).toBe("luteal");
+  });
+
+  it("classifies follicular strictly before ovulationLow", () => {
+    expect(phaseOn(addDays(OVULATION_LOW, -1))).toBe("follicular");
+  });
+
+  it("classifies ovulatory from ovulationLow through ovulationHigh, inclusive", () => {
+    expect(phaseOn(OVULATION_LOW)).toBe("ovulatory");
+    expect(phaseOn(OVULATION_HIGH)).toBe("ovulatory");
+  });
+
+  it("classifies luteal strictly after ovulationHigh", () => {
+    expect(phaseOn(addDays(OVULATION_HIGH, 1))).toBe("luteal");
+  });
+
+  it("bleeding overrides what would otherwise be follicular", () => {
+    expect(phaseOn(addDays(OVULATION_LOW, -1), { isBleeding: true })).toBe("menstrual");
+  });
+
+  it("bleeding overrides what would otherwise be luteal", () => {
+    expect(phaseOn(addDays(OVULATION_HIGH, 1), { isBleeding: true })).toBe("menstrual");
+  });
+
+  it("bleeding overrides what would otherwise be ovulatory", () => {
+    expect(phaseOn(OVULATION_LOW, { isBleeding: true })).toBe("menstrual");
+  });
+
+  it("still returns null for out-of-range dates even when bleeding is recorded", () => {
+    expect(phaseOn(addDays(CYCLE_START, -1), { isBleeding: true })).toBeNull();
+    expect(phaseOn(addDays(PREDICTED_HIGH, 1), { isBleeding: true })).toBeNull();
+  });
+});
+
+describe("ovarianPhase", () => {
+  const CYCLE_START = d("2026-08-01");
+  const fertility = {
+    ovulationLow: d("2026-08-14"),
+    ovulationHigh: d("2026-08-17"),
+    fertileLow: d("2026-08-09"),
+    fertileHigh: d("2026-08-18"),
+    confidenceNote: "note",
+    disclaimer: FERTILITY_DISCLAIMER,
+  };
+  const on = (date: CivilDate) =>
+    ovarianPhase({ date, cycleStart: CYCLE_START, predictedHigh: d("2026-08-30"), fertility });
+
+  it("keeps the ovarian state on a bleeding day — the menstrual phase is a SUBSET of the follicular phase", () => {
+    // The reported bug: `cyclePhase` short-circuits to "menstrual" whenever isBleeding, so
+    // a recorded period day carried no follicular/luteal information at all and the
+    // calendar's phase underline vanished on exactly the days the user looks at most.
+    expect(on(CYCLE_START)).toBe("follicular");
+    expect(cyclePhase({ date: CYCLE_START, cycleStart: CYCLE_START, predictedHigh: d("2026-08-30"), fertility, isBleeding: true })).toBe("menstrual");
+  });
+
+  it("splits follicular / ovulatory / luteal at the ovulation band, inclusively", () => {
+    expect(on(d("2026-08-13"))).toBe("follicular");
+    expect(on(d("2026-08-14"))).toBe("ovulatory");
+    expect(on(d("2026-08-17"))).toBe("ovulatory");
+    expect(on(d("2026-08-18"))).toBe("luteal");
+  });
+
+  it("applies the same guards as cyclePhase (no estimate, before the cycle, past the predicted high)", () => {
+    expect(ovarianPhase({ date: d("2026-08-10"), cycleStart: CYCLE_START, predictedHigh: null, fertility: null })).toBeNull();
+    expect(on(addDays(CYCLE_START, -1))).toBeNull();
+    expect(on(d("2026-08-31"))).toBeNull();
   });
 });

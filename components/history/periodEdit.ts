@@ -162,6 +162,23 @@ function defaultDayLog(date: CivilDate, today: CivilDate): DayLog {
  * whose bleeding, flow and boundary all match what's already recorded is omitted
  * entirely, so saving a draft with no real edits issues zero requests.
  *
+ * Re-asserting the start/end boundary markers only happens when the user actually
+ * edited some day's bleeding/flow in this draft. Without that gate, opening an
+ * *ongoing* period (no explicit end logged) and saving with zero changes would still
+ * "discover" a boundary — the last already-logged bleeding day — and write
+ * `periodBoundary: 'end'` on it, silently declaring the period over even though the
+ * user never asserted that. An edit to the draft IS the user's assertion (per this
+ * file's header comment); the absence of one is not.
+ *
+ * The `end` marker is never written for `today` or later, even when the draft's last
+ * bleeding day is there. `periodBoundary: 'end'` means "this period is over", and a day
+ * that has not finished yet cannot carry that assertion — writing it closed the ongoing
+ * period behind the user's back the moment they edited any day in the sheet, which also
+ * silently killed the calendar's "period expected to continue" days. (Same reasoning as
+ * `buildEpisodes`'s `compare(date, today) < 0` guard.) The day-log dialog's explicit
+ * "last day" control remains the way to end a period that is still running. `start` is
+ * unaffected: a period demonstrably did begin on a past-or-present day.
+ *
  * `today` stamps `loggedAt` only on days that had no prior `DayLog` (a brand-new
  * record is genuinely being logged today); an edit to an existing day's `loggedAt` is
  * left untouched, since `loggedAt` records when the entry was first made (S17), not
@@ -173,6 +190,11 @@ export function buildDayLogsToSave(
   boundary: PeriodBoundary | null,
   today: CivilDate,
 ): DayLog[] {
+  const userEditedBleeding = draft.rows.some((row) => {
+    const original = originalDayLogsByDate.get(row.date);
+    return row.bleeding !== (original?.bleeding ?? "none") || row.flow !== original?.flow;
+  });
+
   const out: DayLog[] = [];
   for (const row of draft.rows) {
     const original = originalDayLogsByDate.get(row.date);
@@ -180,12 +202,15 @@ export function buildDayLogsToSave(
     const originalFlow = original?.flow;
     const originalBoundary = original?.periodBoundary;
 
-    const nextBoundary: "start" | "end" | undefined =
-      boundary !== null && compare(row.date, boundary.start) === 0
+    const nextBoundary: "start" | "end" | undefined = userEditedBleeding
+      ? boundary !== null && compare(row.date, boundary.start) === 0
         ? "start"
-        : boundary !== null && compare(row.date, boundary.end) === 0
+        : boundary !== null &&
+            compare(row.date, boundary.end) === 0 &&
+            compare(boundary.end, today) < 0
           ? "end"
-          : undefined;
+          : undefined
+      : originalBoundary;
 
     const changed =
       row.bleeding !== originalBleeding || row.flow !== originalFlow || nextBoundary !== originalBoundary;

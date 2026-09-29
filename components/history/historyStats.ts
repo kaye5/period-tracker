@@ -187,10 +187,10 @@ export function symptomFrequencyRows(
 // ============================================================================
 
 const WINDOW_LABEL: Record<SymptomCycleDayPoint["window"], string> = {
-  premenstrual: "Premenstrual (days -7 to -1 before your next period)",
-  mid_luteal: "Mid-luteal (days -11 to -8 before your next period)",
-  menstrual: "Menstrual (days 1-4 of your period)",
-  follicular_reference: "Follicular reference (days 4-10, excluding bleeding days)",
+  premenstrual: "Premenstrual comparison window (days -7 to -1 before your next period)",
+  mid_luteal: "Mid-luteal comparison window (days -11 to -8 before your next period)",
+  menstrual: "Menstrual comparison window (days 1-4 of your period)",
+  follicular_reference: "Follicular comparison window (days 4-10, excluding bleeding days)",
 };
 
 export interface SymptomByCycleDayRow {

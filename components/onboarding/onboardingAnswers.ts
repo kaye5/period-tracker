@@ -20,7 +20,6 @@ import type {
   HormonalMethodKind,
   Profile,
 } from "@/lib/domain/types";
-import { MIN_CYCLE, MAX_CYCLE } from "@/lib/engine/constants";
 
 // ============================================================================
 // Working draft state
@@ -156,30 +155,16 @@ export function answersFromProfile(profile: Profile): OnboardingAnswers {
 // Validation bounds
 // ============================================================================
 
-/** Reuses the engine's own excluded-cycle bounds (lib/engine/constants.ts, cited from
- * S5/S15) as the outer bounds for what a user can type as their typical cycle length —
- * anything outside this range would be discarded by the engine anyway (MIN_CYCLE/
- * MAX_CYCLE), so rejecting it at entry gives the user an honest reason instead of a
- * silently-ignored answer later. */
-export const CYCLE_LENGTH_BOUNDS = { min: MIN_CYCLE, max: MAX_CYCLE };
-
-/** No research-cited bound exists for period *duration* specifically. [choice] — wide
- * enough to include prolonged bleeding (which the health-awareness rules react to, not
- * the onboarding form) while still catching obvious data-entry mistakes (e.g. "45"). */
-export const PERIOD_DURATION_BOUNDS = { min: 1, max: 14 };
-
-export function isValidCycleLengthDays(n: number): boolean {
-  return Number.isFinite(n) && Number.isInteger(n) && n >= CYCLE_LENGTH_BOUNDS.min && n <= CYCLE_LENGTH_BOUNDS.max;
-}
-
-export function isValidPeriodDurationDays(n: number): boolean {
-  return (
-    Number.isFinite(n) &&
-    Number.isInteger(n) &&
-    n >= PERIOD_DURATION_BOUNDS.min &&
-    n <= PERIOD_DURATION_BOUNDS.max
-  );
-}
+/** The self-reported number bounds and their validators now live at the validation
+ * boundary (`lib/domain/schema.ts`), where the API enforces them too — a bound only the
+ * form knows is a bound the API does not apply. Re-exported here so every existing
+ * caller keeps its import path and there is still exactly one definition. */
+export {
+  CYCLE_LENGTH_BOUNDS,
+  PERIOD_DURATION_BOUNDS,
+  isValidCycleLengthDays,
+  isValidPeriodDurationDays,
+} from "@/lib/domain/schema";
 
 // ============================================================================
 // Profile assembly

@@ -9,7 +9,11 @@
  * old FakeCollection tests").
  */
 import { describe, expect, it } from "vitest";
-import { profileSchema } from "@/lib/domain/schema";
+import {
+  CYCLE_LENGTH_BOUNDS,
+  PERIOD_DURATION_BOUNDS,
+  profileSchema,
+} from "@/lib/domain/schema";
 import { DEFAULT_PROFILE } from "@/lib/repo/profile";
 
 describe("lib/repo/profile — DEFAULT_PROFILE", () => {
@@ -32,5 +36,33 @@ describe("lib/repo/profile — DEFAULT_PROFILE", () => {
 
   it("is itself a valid Profile per profileSchema", () => {
     expect(() => profileSchema.parse(DEFAULT_PROFILE)).not.toThrow();
+  });
+});
+
+describe("profileSchema — self-reported number bounds", () => {
+  const withPeriodDays = (n: number) => ({ ...DEFAULT_PROFILE, reportedTypicalPeriodDays: n });
+  const withCycleLength = (n: number) => ({ ...DEFAULT_PROFILE, reportedTypicalCycleLength: n });
+
+  it("accepts a value on each bound", () => {
+    expect(() => profileSchema.parse(withPeriodDays(PERIOD_DURATION_BOUNDS.min))).not.toThrow();
+    expect(() => profileSchema.parse(withPeriodDays(PERIOD_DURATION_BOUNDS.max))).not.toThrow();
+    expect(() => profileSchema.parse(withCycleLength(CYCLE_LENGTH_BOUNDS.min))).not.toThrow();
+    expect(() => profileSchema.parse(withCycleLength(CYCLE_LENGTH_BOUNDS.max))).not.toThrow();
+  });
+
+  it("rejects an out-of-range or non-integer period length at the write boundary", () => {
+    // PUT /api/profile parses the body with this schema. Before it was bounded, the
+    // settings form's number input could save 45 or 90 — and
+    // components/calendar/dayIndicators.ts paints "period expected to continue" days from
+    // that number, so an unbounded value marked most of the month as an expected period.
+    expect(() => profileSchema.parse(withPeriodDays(PERIOD_DURATION_BOUNDS.max + 1))).toThrow();
+    expect(() => profileSchema.parse(withPeriodDays(90))).toThrow();
+    expect(() => profileSchema.parse(withPeriodDays(0))).toThrow();
+    expect(() => profileSchema.parse(withPeriodDays(5.5))).toThrow();
+  });
+
+  it("rejects an out-of-range cycle length at the write boundary", () => {
+    expect(() => profileSchema.parse(withCycleLength(CYCLE_LENGTH_BOUNDS.min - 1))).toThrow();
+    expect(() => profileSchema.parse(withCycleLength(CYCLE_LENGTH_BOUNDS.max + 1))).toThrow();
   });
 });

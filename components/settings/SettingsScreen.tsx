@@ -34,6 +34,8 @@ import { ScreenLockCard } from "@/components/settings/ScreenLockCard";
 import {
   CYCLE_LENGTH_BOUNDS,
   PERIOD_DURATION_BOUNDS,
+  isValidCycleLengthDays,
+  isValidPeriodDurationDays,
   type Regularity,
 } from "@/components/onboarding/onboardingAnswers";
 
@@ -150,6 +152,69 @@ function SaveIndicator({ state }: { state: SaveState }) {
   );
 }
 
+/**
+ * A self-reported whole-number field (cycle length, period length).
+ *
+ * UNCONTROLLED on purpose. These used to be controlled inputs that PUT the profile on
+ * every keystroke, which meant a half-typed "4" on the way to "45" was saved as a real
+ * answer, and "45" itself was saved too — `lib/domain/schema.ts` now rejects that at the
+ * API, so the same keystroke-saving would just surface as a failed save. Committing on
+ * blur lets the user type freely, validates once, and only then writes. An out-of-range
+ * entry is reverted and says why rather than being silently dropped.
+ *
+ * `key` on the input resyncs `defaultValue` whenever the stored value changes from
+ * elsewhere (the "I don't know" checkbox, or the initial profile fetch).
+ */
+function ReportedNumberField({
+  value,
+  bounds,
+  isValid,
+  label,
+  unit,
+  onCommit,
+}: {
+  value: number;
+  bounds: { min: number; max: number };
+  isValid: (n: number) => boolean;
+  label: string;
+  unit: string;
+  onCommit: (n: number) => void;
+}) {
+  const [error, setError] = useState<string | null>(null);
+
+  return (
+    <>
+      <Input
+        key={value}
+        type="number"
+        inputMode="numeric"
+        min={bounds.min}
+        max={bounds.max}
+        aria-label={label}
+        aria-invalid={error !== null}
+        aria-describedby={error !== null ? `${label}-error` : undefined}
+        className="h-11 w-28"
+        defaultValue={value}
+        onBlur={(e) => {
+          const next = Number(e.target.value);
+          if (e.target.value.trim() === "" || !isValid(next)) {
+            e.target.value = String(value);
+            setError(`Enter a whole number of ${unit} between ${bounds.min} and ${bounds.max}.`);
+            return;
+          }
+          setError(null);
+          if (next !== value) onCommit(next);
+        }}
+      />
+      {error !== null ? (
+        <FieldDescription id={`${label}-error`} className="text-destructive">
+          {error}
+        </FieldDescription>
+      ) : null}
+    </>
+  );
+}
+
 function CycleBasicsCard({ profile, onSave }: { profile: Profile; onSave: (p: Profile) => void }) {
   const known = profile.reportedTypicalCycleLength !== undefined;
   const durationKnown = profile.reportedTypicalPeriodDays !== undefined;
@@ -183,20 +248,13 @@ function CycleBasicsCard({ profile, onSave }: { profile: Profile; onSave: (p: Pr
               </FieldLabel>
             </Field>
             {known ? (
-              <Input
-                type="number"
-                inputMode="numeric"
-                min={CYCLE_LENGTH_BOUNDS.min}
-                max={CYCLE_LENGTH_BOUNDS.max}
-                aria-label="Typical cycle length in days"
-                className="h-11 w-28"
-                value={profile.reportedTypicalCycleLength ?? ""}
-                onChange={(e) =>
-                  onSave({
-                    ...profile,
-                    reportedTypicalCycleLength: e.target.value === "" ? undefined : Number(e.target.value),
-                  })
-                }
+              <ReportedNumberField
+                value={profile.reportedTypicalCycleLength ?? CYCLE_LENGTH_BOUNDS.min}
+                bounds={CYCLE_LENGTH_BOUNDS}
+                isValid={isValidCycleLengthDays}
+                label="Typical cycle length in days"
+                unit="days"
+                onCommit={(n) => onSave({ ...profile, reportedTypicalCycleLength: n })}
               />
             ) : null}
           </Field>
@@ -219,20 +277,13 @@ function CycleBasicsCard({ profile, onSave }: { profile: Profile; onSave: (p: Pr
               </FieldLabel>
             </Field>
             {durationKnown ? (
-              <Input
-                type="number"
-                inputMode="numeric"
-                min={PERIOD_DURATION_BOUNDS.min}
-                max={PERIOD_DURATION_BOUNDS.max}
-                aria-label="Typical period length in days"
-                className="h-11 w-28"
-                value={profile.reportedTypicalPeriodDays ?? ""}
-                onChange={(e) =>
-                  onSave({
-                    ...profile,
-                    reportedTypicalPeriodDays: e.target.value === "" ? undefined : Number(e.target.value),
-                  })
-                }
+              <ReportedNumberField
+                value={profile.reportedTypicalPeriodDays ?? PERIOD_DURATION_BOUNDS.min}
+                bounds={PERIOD_DURATION_BOUNDS}
+                isValid={isValidPeriodDurationDays}
+                label="Typical period length in days"
+                unit="days"
+                onCommit={(n) => onSave({ ...profile, reportedTypicalPeriodDays: n })}
               />
             ) : null}
           </Field>
