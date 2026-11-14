@@ -69,6 +69,9 @@ export function getDb(): Db {
     // Small pool: a single-user app talking to one database has no need for a large
     // connection pool.
     connectionLimit: 10,
+    // Instants are stored and read as UTC regardless of host or DB server zone
+    // (docs/MCP-SPEC.md Part A).
+    timezone: "Z",
     ...(useSsl ? { ssl: {} } : {}),
   });
   c.pool = pool;

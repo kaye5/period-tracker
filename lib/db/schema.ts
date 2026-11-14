@@ -17,6 +17,7 @@ import {
   bigint,
   boolean,
   char,
+  datetime,
   decimal,
   double,
   index,
@@ -70,6 +71,10 @@ export const dayLogs = mysqlTable("day_logs", {
   fertilityOvulationPain: boolean("fertility_ovulation_pain"),
   fertilityBbtCelsius: decimal("fertility_bbt_celsius", { precision: 4, scale: 2 }),
   fertilityOpkResult: mysqlEnum("fertility_opk_result", ["negative", "positive"]),
+  // When this row was last saved — a UTC instant (docs/MCP-SPEC.md Part A), unlike the
+  // CivilDate columns above. Not part of the `DayLog` domain object; set by
+  // `upsertDayLog`. Null for rows saved before this column existed.
+  updatedAt: datetime("updated_at", { mode: "date", fsp: 3 }),
 });
 
 // ---------------------------------------------------------------------------
@@ -203,6 +208,9 @@ export const profile = mysqlTable("profile", {
   notifLoggingReminder: boolean("notif_logging_reminder").notNull().default(false),
   notifHealthAwareness: boolean("notif_health_awareness").notNull().default(false),
   notifPrivateWording: boolean("notif_private_wording").notNull().default(true),
+  // Last IANA time zone the browser reported (docs/MCP-SPEC.md Part A). Not part of the
+  // `Profile` domain object — read/written only via getUserTimeZone/setUserTimeZone.
+  timeZone: varchar("time_zone", { length: 64 }),
 });
 
 // ============================================================================

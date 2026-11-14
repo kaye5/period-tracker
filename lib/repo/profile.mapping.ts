@@ -20,7 +20,9 @@ import type { profile as profileTable } from "@/lib/db/schema";
  * at 1"). */
 export const PROFILE_ID = 1;
 
-export type ProfileRow = typeof profileTable.$inferSelect;
+/** Minus `timeZone`: not domain data, and leaving it out of `toRow` keeps
+ * `upsertProfile` from overwriting it (see getUserTimeZone/setUserTimeZone). */
+export type ProfileRow = Omit<typeof profileTable.$inferSelect, "timeZone">;
 
 export function toRow(p: Profile): ProfileRow {
   return {

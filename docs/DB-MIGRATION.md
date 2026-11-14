@@ -73,6 +73,8 @@ non-null; `fertility: {}` and `undefined` are equivalent for this app):
 `fertility_cervical_mucus` enum(dry,sticky,creamy,watery,egg_white) NULL;
 `fertility_ovulation_pain` bool NULL; `fertility_bbt_celsius` decimal(4,2) NULL;
 `fertility_opk_result` enum(negative,positive) NULL.
+`updated_at` DATETIME(3) NULL — last-save UTC instant, set by `upsertDayLog`; not part of
+`DayLog`; NULL for rows saved before it existed (docs/MCP-SPEC.md Part A).
 
 ### 3.2 Child tables of `day_logs` (set semantics, no order column)
 Each: FK `date CHAR(10)` → `day_logs.date` **ON DELETE CASCADE**, composite PK `(date, value)`.
@@ -103,7 +105,9 @@ enum('en-US','en-GB') NOT NULL DEFAULT 'en-US', and seven notification booleans
 `notif_period_reminder`, `notif_fertile_reminder`, `notif_symptom_reminder`,
 `notif_medication_reminder`, `notif_logging_reminder`, `notif_health_awareness`,
 `notif_private_wording` (DEFAULT true). Defaults must match `DEFAULT_PROFILE` in
-`lib/repo/profile.ts`.
+`lib/repo/profile.ts`. `time_zone` varchar(64) NULL — last IANA zone the browser
+reported; not part of `Profile`, read/written only by `getUserTimeZone`/`setUserTimeZone`
+(docs/MCP-SPEC.md Part A).
 
 ### 3.4 `predictions`
 PK `id BIGINT AUTO_INCREMENT`. Columns: `issued_on CHAR(10)` NOT NULL, `predicted_center

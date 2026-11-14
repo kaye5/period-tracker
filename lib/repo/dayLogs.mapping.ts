@@ -34,8 +34,9 @@ import type { DayLog, Interference, MoodId, PainSite, SymptomId } from "@/lib/do
 import { dayLogSchema } from "@/lib/domain/schema";
 import type { dayLogs } from "@/lib/db";
 
-/** The `day_logs` parent-table row shape, as Drizzle infers it from the schema. */
-export type DayLogRow = typeof dayLogs.$inferSelect;
+/** The `day_logs` parent-table row shape, as Drizzle infers it from the schema, minus
+ * `updatedAt` — a save timestamp, not domain data; `upsertDayLog` sets it. */
+export type DayLogRow = Omit<typeof dayLogs.$inferSelect, "updatedAt">;
 
 /** The four child-table value sets for one day log, keyed the way the child tables are. */
 export interface DayLogChildValues {

@@ -122,8 +122,11 @@ export async function upsertDayLog(input: DayLog, tx?: Db): Promise<DayLog> {
   const { row, symptoms, moods, painSites, interference } = toRows(input);
   const db = tx ?? getDb();
 
+  // Save time is a UTC instant (docs/MCP-SPEC.md Part A), set on insert and update alike.
+  const values = { ...row, updatedAt: new Date() };
+
   await db.transaction(async (t) => {
-    await t.insert(dayLogs).values(row).onDuplicateKeyUpdate({ set: row });
+    await t.insert(dayLogs).values(values).onDuplicateKeyUpdate({ set: values });
 
     await t.delete(dayLogSymptoms).where(eq(dayLogSymptoms.date, row.date));
     await t.delete(dayLogMoods).where(eq(dayLogMoods.date, row.date));
@@ -147,6 +150,14 @@ export async function upsertDayLog(input: DayLog, tx?: Db): Promise<DayLog> {
   });
 
   return fromRows(row, { symptoms, moods, painSites, interference });
+}
+
+/** When the log for `date` was last saved, as epoch ms (UTC), or null if there is no log
+ * or it was saved before `updated_at` existed. */
+export async function getDayLogUpdatedAt(date: CivilDate, tx?: Db): Promise<number | null> {
+  const db = tx ?? getDb();
+  const [row] = await db.select({ updatedAt: dayLogs.updatedAt }).from(dayLogs).where(eq(dayLogs.date, date));
+  return row?.updatedAt?.getTime() ?? null;
 }
 
 /** Hard delete — SPEC.md's data-layer brief: "Delete endpoint must actually drop the

@@ -15,6 +15,13 @@
       "when": 1784978148365,
       "tag": "0001_exotic_emma_frost",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1794688210506,
+      "tag": "0002_freezing_gargoyle",
+      "breakpoints": true
     }
   ]
 }

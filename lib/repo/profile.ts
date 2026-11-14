@@ -78,3 +78,26 @@ export async function deleteProfile(tx?: Db): Promise<boolean> {
   const [result] = await db.delete(profileTable).where(eq(profileTable.id, PROFILE_ID));
   return result.affectedRows === 1;
 }
+
+/** The last IANA time zone the browser reported, or null (no profile row, or never set).
+ * Stored outside the `Profile` domain object; callers validate it before use. */
+export async function getUserTimeZone(tx?: Db): Promise<string | null> {
+  const db = tx ?? getDb();
+  const [row] = await db
+    .select({ timeZone: profileTable.timeZone })
+    .from(profileTable)
+    .where(eq(profileTable.id, PROFILE_ID))
+    .limit(1);
+  return row?.timeZone ?? null;
+}
+
+/** Stores `tz` on the existing profile row. Does nothing (returns false) when no profile
+ * exists yet — onboarding creates the row, not this. */
+export async function setUserTimeZone(tz: string, tx?: Db): Promise<boolean> {
+  const db = tx ?? getDb();
+  const [result] = await db
+    .update(profileTable)
+    .set({ timeZone: tz })
+    .where(eq(profileTable.id, PROFILE_ID));
+  return result.affectedRows === 1;
+}
