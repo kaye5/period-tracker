@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
 import { AppNav } from "@/components/nav/AppNav";
@@ -30,6 +30,20 @@ export const metadata: Metadata = {
     index: false,
     follow: false,
   },
+  // Installed on iOS: full-screen launch, and the neutral home-screen label (app/manifest.ts).
+  appleWebApp: {
+    capable: true,
+    title: "Cycle",
+    statusBarStyle: "default",
+  },
+};
+
+// Browser/OS chrome matches the Daylight page background (--neutral-50 / --night-950).
+export const viewport: Viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#f5f6f8" },
+    { media: "(prefers-color-scheme: dark)", color: "#111214" },
+  ],
 };
 
 export default function RootLayout({
