@@ -4,6 +4,10 @@
  * skipped, never thrown. Never consults the host's time zone.
  */
 
+/** Browser-set cookie carrying the user's zone. Lives here (not requestTimeZone.ts) so client
+ * code can import it without pulling in server-only modules. */
+export const TZ_COOKIE = "tz";
+
 export type TimeZoneSource = "input" | "cookie" | "profile" | "fallback_utc";
 
 /** A non-empty string of at most 64 chars that Intl accepts as a time zone. */
@@ -15,6 +19,36 @@ export function isValidTimeZone(tz: unknown): tz is string {
   } catch {
     return false;
   }
+}
+
+/**
+ * The canonical IANA name for an already-validated zone the client supplied (e.g.
+ * "asia/bangkok" → "Asia/Bangkok"), so cookies and the profile store one spelling. This
+ * canonicalises the zone passed in; it never reads the host's zone (no default formatter).
+ */
+export function canonicalTimeZone(tz: string): string {
+  const { timeZone } = new Intl.DateTimeFormat("en-US", { timeZone: tz }).resolvedOptions();
+  return timeZone;
+}
+
+/**
+ * Whether the raw (URL-encoded) `tz` cookie already names the browser's zone. Compares
+ * canonical forms because engines disagree on aliases (Node stores Asia/Kolkata as
+ * Asia/Calcutta); a plain string compare would re-sync on every load.
+ */
+export function timeZoneCookieMatches(cookie: string | undefined, timeZone: string): boolean {
+  if (!cookie) return false;
+  let tz: string;
+  try {
+    tz = decodeURIComponent(cookie);
+  } catch {
+    return false;
+  }
+  return (
+    isValidTimeZone(tz) &&
+    isValidTimeZone(timeZone) &&
+    canonicalTimeZone(tz) === canonicalTimeZone(timeZone)
+  );
 }
 
 export function resolveTimeZone(c: { input?: unknown; cookie?: unknown; profile?: unknown }): {

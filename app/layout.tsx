@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/sonner";
 import { DayLogDialogProvider } from "@/components/daylog/DayLogDialogProvider";
 import { MotionProvider } from "@/components/providers/MotionProvider";
+import { TimeZoneSync } from "@/components/providers/TimeZoneSync";
 
 // Manrope is self-hosted (app/fonts, OFL) through next/font/local — never next/font/google
 // or any remote font: SPEC.md §0.1 requires this app load no font, script, or image from a
@@ -63,6 +64,7 @@ export default function RootLayout({
           </TooltipProvider>
         </MotionProvider>
         <Toaster />
+        <TimeZoneSync />
       </body>
     </html>
   );

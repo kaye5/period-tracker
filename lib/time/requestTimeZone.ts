@@ -7,9 +7,12 @@
 import { cookies } from "next/headers";
 import { todayInZone, type CivilDate } from "@/lib/date/civil";
 import { getUserTimeZone } from "@/lib/repo/profile";
-import { isValidTimeZone, resolveTimeZone, type TimeZoneSource } from "@/lib/time/userTimeZone";
-
-export const TZ_COOKIE = "tz";
+import {
+  isValidTimeZone,
+  resolveTimeZone,
+  TZ_COOKIE,
+  type TimeZoneSource,
+} from "@/lib/time/userTimeZone";
 
 export async function getRequestTimeZone(): Promise<{ timeZone: string; source: TimeZoneSource }> {
   const cookie = (await cookies()).get(TZ_COOKIE)?.value;
