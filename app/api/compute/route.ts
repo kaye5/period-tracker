@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { isValid as isValidCivilDate, todayInZone, type CivilDate } from "@/lib/date/civil";
+import { isValid as isValidCivilDate, type CivilDate } from "@/lib/date/civil";
 import { listAllDayLogs } from "@/lib/repo/dayLogs";
 import { getProfileOrDefault } from "@/lib/repo/profile";
 import { getUserDecisions } from "@/lib/repo/decisions";
@@ -14,12 +14,13 @@ import { getCalibrationState } from "@/lib/repo/calibration";
 import { computeEverything } from "@/lib/engine";
 import { handleUnexpected, jsonError } from "@/app/api/_lib/http";
 import { requireApiUnlock } from "@/lib/security/guard";
+import { getRequestToday } from "@/lib/time/requestTimeZone";
 
 /**
  * GET /api/compute?today=YYYY-MM-DD — the single `EngineOutput` every screen reads from
  * (SPEC.md §4.1: "No screen recomputes anything locally"). `today` is optional and
- * exists for testing/debugging; in normal operation the server's own clock and local
- * timezone supply it.
+ * exists for testing/debugging and takes precedence; otherwise it is the user's "today"
+ * (tz cookie, else profile, else UTC — never the host's zone).
  */
 export async function GET(request: NextRequest) {
   const locked = await requireApiUnlock();
@@ -34,12 +35,7 @@ export async function GET(request: NextRequest) {
       }
       today = todayParam as CivilDate;
     } else {
-      // I/O boundary (a route handler, not lib/date/civil.ts itself — SPEC.md R3 only
-      // governs the pure engine/date/stat layers): reads the server clock and local
-      // timezone once, then hands civil.ts an explicit instant, exactly as R3 requires
-      // of every caller of todayInZone.
-      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-      today = todayInZone(tz, Date.now());
+      ({ today } = await getRequestToday());
     }
 
     const [dayLogs, profile, decisions, calibration] = await Promise.all([

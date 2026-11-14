@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { todayInZone, type CivilDate } from "@/lib/date/civil";
+import type { CivilDate } from "@/lib/date/civil";
 import { computeEverything, type EngineResult } from "@/lib/engine";
 import { getProfile } from "@/lib/repo/profile";
 import { listAllDayLogs } from "@/lib/repo/dayLogs";
@@ -7,6 +7,7 @@ import { getUserDecisions, listHealthMessageDecisions } from "@/lib/repo/decisio
 import { getCalibrationState } from "@/lib/repo/calibration";
 import { buildHealthAwarenessState } from "@/components/dashboard/healthState";
 import { requirePageUnlock } from "@/lib/security/guard";
+import { getRequestToday } from "@/lib/time/requestTimeZone";
 import type { DashboardCalendarData } from "@/components/dashboard/DashboardScreen";
 
 /**
@@ -32,7 +33,7 @@ export async function loadCycleView(): Promise<{
     redirect("/onboarding");
   }
 
-  const today = todayOnServer();
+  const { today } = await getRequestToday();
 
   const [dayLogs, decisions, calibration, healthMessageDecisions] = await Promise.all([
     listAllDayLogs(),
@@ -70,11 +71,4 @@ export async function loadCycleView(): Promise<{
       typicalPeriodDays,
     },
   };
-}
-
-// I/O boundary (SPEC.md R3 only governs the pure engine/date/stat layers) — reads the
-// server clock and local timezone once per request.
-function todayOnServer(): CivilDate {
-  const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-  return todayInZone(tz, Date.now());
 }

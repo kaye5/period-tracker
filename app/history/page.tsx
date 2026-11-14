@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { todayInZone, type CivilDate } from "@/lib/date/civil";
 import { listAllDayLogs } from "@/lib/repo/dayLogs";
 import { getProfileOrDefault } from "@/lib/repo/profile";
 import { getUserDecisions } from "@/lib/repo/decisions";
@@ -13,6 +12,7 @@ import { computeEverything, predictedVsActualSeries } from "@/lib/engine";
 import { parseDatesParam } from "@/components/history/cycleListData";
 import { HistoryScreen } from "@/components/history/HistoryScreen";
 import { requirePageUnlock } from "@/lib/security/guard";
+import { getRequestToday } from "@/lib/time/requestTimeZone";
 
 export const metadata: Metadata = {
   title: "Insights — Period Tracker",
@@ -25,16 +25,6 @@ export const dynamic = "force-dynamic";
 
 interface HistoryPageProps {
   searchParams: Promise<{ dates?: string }>;
-}
-
-// I/O boundary (SPEC.md R3 only governs the pure engine/date/stat layers, not this route
-// component) — reads the server clock and local timezone once per request. Pulled out of
-// the component body, same as `app/page.tsx`'s `todayOnServer()`, so the direct
-// `Date.now()` call site isn't inside a component function (React's purity rule for
-// Server Components forbids calling an impure function during render).
-function todayOnServer(): CivilDate {
-  const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-  return todayInZone(tz, Date.now());
 }
 
 export default async function HistoryPage({ searchParams }: HistoryPageProps) {
@@ -50,7 +40,8 @@ export default async function HistoryPage({ searchParams }: HistoryPageProps) {
     getCalibrationState(),
   ]);
 
-  const today = todayOnServer();
+  // The user's "today" (tz cookie, else profile, else UTC) — never the host's zone.
+  const { today } = await getRequestToday();
 
   const result = computeEverything({ dayLogs, profile, today, decisions, calibration });
   const predictedVsActual = predictedVsActualSeries(result.resolvedPredictions);

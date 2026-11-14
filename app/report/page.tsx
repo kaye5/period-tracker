@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import "./report.css";
-import { todayInZone, type CivilDate } from "@/lib/date/civil";
 import { listAllDayLogs } from "@/lib/repo/dayLogs";
 import { getProfileOrDefault } from "@/lib/repo/profile";
 import { getUserDecisions } from "@/lib/repo/decisions";
@@ -11,6 +10,7 @@ import { getCalibrationState } from "@/lib/repo/calibration";
 import { computeEverything } from "@/lib/engine";
 import { ReportScreen } from "@/components/report/ReportScreen";
 import { requirePageUnlock } from "@/lib/security/guard";
+import { getRequestToday } from "@/lib/time/requestTimeZone";
 
 export const metadata: Metadata = {
   title: "Report — Period Tracker",
@@ -20,13 +20,6 @@ export const metadata: Metadata = {
 // data layer during render. See app/page.tsx for the full rationale (unreachable DB at
 // build + inherently per-request user data).
 export const dynamic = "force-dynamic";
-
-// I/O boundary (SPEC.md R3 only governs the pure engine/date/stat layers, not this route
-// component) — same pattern as app/history/page.tsx and app/page.tsx's `todayOnServer()`.
-function todayOnServer(): CivilDate {
-  const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-  return todayInZone(tz, Date.now());
-}
 
 export default async function ReportPage() {
   await requirePageUnlock();
@@ -38,7 +31,8 @@ export default async function ReportPage() {
     getCalibrationState(),
   ]);
 
-  const today = todayOnServer();
+  // The user's "today" (tz cookie, else profile, else UTC) — never the host's zone.
+  const { today } = await getRequestToday();
   const result = computeEverything({ dayLogs, profile, today, decisions, calibration });
 
   return (
