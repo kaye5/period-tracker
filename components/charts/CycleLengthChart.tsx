@@ -36,24 +36,25 @@ interface CycleLengthDatum {
 }
 
 const chartConfig = {
-  lengthDays: { label: "Cycle length" },
+  lengthDays: { label: "Cycle length", color: "var(--chart-1)" },
+  excluded: { label: "Excluded by you", color: "var(--chart-5)" },
 } satisfies ChartConfig;
 
 const BAR_SLOT_WIDTH = 56;
 const MIN_WIDTH = 420;
 
 /** Fill/stroke encoding for a cycle's status — never colour alone (R7): `ok` is a solid
- * rose bar, `gap_unknown`/`skip_suspected` are the same rose at reduced opacity with a
+ * bar, `gap_unknown`/`skip_suspected` are the same colour at reduced opacity with a
  * dashed outline, and `excluded_by_user` is an outline-only bar (no fill). */
 function statusShape(status: CycleStatus) {
   switch (status) {
     case "gap_unknown":
     case "skip_suspected":
-      return { fill: "var(--chart-1)", fillOpacity: 0.45, stroke: "var(--chart-1)", strokeDasharray: "4 2" };
+      return { fill: "var(--color-lengthDays)", fillOpacity: 0.45, stroke: "var(--color-lengthDays)", strokeDasharray: "4 2" };
     case "excluded_by_user":
-      return { fill: "transparent", fillOpacity: 1, stroke: "var(--muted-foreground)", strokeDasharray: undefined };
+      return { fill: "transparent", fillOpacity: 1, stroke: "var(--color-excluded)", strokeDasharray: undefined };
     default:
-      return { fill: "var(--chart-1)", fillOpacity: 1, stroke: undefined, strokeDasharray: undefined };
+      return { fill: "var(--color-lengthDays)", fillOpacity: 1, stroke: undefined, strokeDasharray: undefined };
   }
 }
 
@@ -117,14 +118,14 @@ export function CycleLengthChart({ cycles, typicalCycleLength }: CycleLengthChar
         <Legend
           label="Cycle length chart legend"
           items={[
-            { swatchClassName: "bg-[var(--chart-1)]", label: "Recorded" },
+            { swatchClassName: "bg-chart-1", label: "Recorded" },
             {
-              icon: <span aria-hidden="true" className="inline-block h-2.5 w-2.5 rounded-[2px] border-2 border-dashed border-[var(--chart-1)] bg-[var(--chart-1)]/45" />,
+              icon: <span aria-hidden="true" className="inline-block size-2.5 rounded-sm border-2 border-dashed border-chart-1 bg-chart-1/45" />,
               label: "Gap — unknown / possible missed period",
               description: "Dashed outline, reduced fill",
             },
             {
-              icon: <span aria-hidden="true" className="inline-block h-2.5 w-2.5 rounded-[2px] border-2 border-[var(--muted-foreground)]" />,
+              icon: <span aria-hidden="true" className="inline-block size-2.5 rounded-sm border-2 border-chart-5" />,
               label: "Excluded by you",
               description: "Outline bar, no fill",
             },
@@ -133,7 +134,7 @@ export function CycleLengthChart({ cycles, typicalCycleLength }: CycleLengthChar
       }
     >
       <div style={{ minWidth: `${width}px` }}>
-        <ChartContainer config={chartConfig} className="aspect-auto h-56 w-full">
+        <ChartContainer config={chartConfig} className="aspect-auto h-56 w-full text-caption">
           <BarChart data={data} margin={{ top: 8, right: 8, bottom: 4, left: 4 }}>
             <CartesianGrid vertical={false} />
             <XAxis dataKey="label" tickLine={false} axisLine={false} />
@@ -142,7 +143,7 @@ export function CycleLengthChart({ cycles, typicalCycleLength }: CycleLengthChar
               <ReferenceArea
                 y1={typicalCycleLength.low}
                 y2={typicalCycleLength.high}
-                fill="var(--chart-1)"
+                fill="var(--color-lengthDays)"
                 fillOpacity={0.08}
                 strokeOpacity={0}
                 ifOverflow="extendDomain"
@@ -151,7 +152,7 @@ export function CycleLengthChart({ cycles, typicalCycleLength }: CycleLengthChar
             {typicalCycleLength ? (
               <ReferenceLine
                 y={typicalCycleLength.center}
-                stroke="var(--chart-1)"
+                stroke="var(--color-lengthDays)"
                 strokeDasharray="4 4"
                 ifOverflow="extendDomain"
               />
@@ -168,7 +169,7 @@ export function CycleLengthChart({ cycles, typicalCycleLength }: CycleLengthChar
                     const d = item.payload as CycleLengthDatum;
                     return (
                       <div className="flex w-full flex-col gap-0.5">
-                        <span className="font-mono font-medium text-foreground tabular-nums">{d.lengthDays} days</span>
+                        <span className="font-medium text-foreground tabular-nums">{d.lengthDays} days</span>
                         <span className="text-muted-foreground">{STATUS_LABEL[d.status]}</span>
                         {d.statusReason ? <span className="text-muted-foreground">{d.statusReason}</span> : null}
                       </div>

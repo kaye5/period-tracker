@@ -13,6 +13,7 @@
  * makes no claim we cannot stand behind (SPEC.md §0.1 tone).
  */
 import { useEffect } from "react";
+import Link from "next/link";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -30,13 +31,13 @@ export default function AppError({
   }, [error]);
 
   return (
-    <main className="mx-auto flex w-full max-w-lg flex-1 flex-col items-center justify-center gap-4 px-4 py-16 text-center">
-      <h1 className="text-xl font-semibold text-foreground">Something went wrong</h1>
-      <p className="text-sm text-muted-foreground">
+    <main className="mx-auto flex w-full max-w-lg flex-1 flex-col items-center justify-center gap-stack px-gutter py-section text-center">
+      <h1 className="text-title text-foreground">Something went wrong</h1>
+      <p className="text-body text-muted-foreground text-pretty">
         This screen couldn&apos;t load. If it just started happening, the most likely cause
         is that the app can&apos;t reach the database.
       </p>
-      <Alert className="p-4">
+      <Alert className="mt-2 stage border-0 p-card">
         <AlertTitle>Can&apos;t reach the database</AlertTitle>
         <AlertDescription>
           Check that <code className="rounded bg-muted px-1 py-0.5">DATABASE_URL</code> is
@@ -44,11 +45,16 @@ export default function AppError({
           and that the database it points to is running and reachable.
         </AlertDescription>
       </Alert>
-      <Button type="button" onClick={reset}>
-        Try again
-      </Button>
+      <div className="mt-2 flex flex-wrap justify-center gap-2">
+        <Button type="button" className="px-6" onClick={reset}>
+          Try again
+        </Button>
+        <Button variant="outline" className="px-6" nativeButton={false} render={<Link href="/" />}>
+          Back to Today
+        </Button>
+      </div>
       {error.digest ? (
-        <p className="text-xs text-muted-foreground">Reference: {error.digest}</p>
+        <p className="text-caption text-muted-foreground tabular-nums">Reference: {error.digest}</p>
       ) : null}
     </main>
   );

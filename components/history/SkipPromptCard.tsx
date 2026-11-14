@@ -3,8 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { ChipCheck } from "@/components/daylog/ChipGroup";
 import { postSkipPromptAnswer, clientToday } from "@/components/charts/api";
 import type { SkipPromptViewModel } from "@/components/history/cycleListData";
 
@@ -43,43 +43,46 @@ export function SkipPromptCard({ prompt }: SkipPromptCardProps) {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Did you miss logging a period?</CardTitle>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-3">
-        <p className="text-sm text-foreground">{prompt.question}</p>
-        {prompt.alternativeDates.length > 0 ? (
-          <ToggleGroup
-            aria-label="Which date"
-            value={[selectedDate]}
-            onValueChange={(values) => {
-              const next = values[0];
-              if (next) setSelectedDate(next as typeof selectedDate);
-            }}
-          >
-            <ToggleGroupItem value={prompt.suggestedDate}>{prompt.suggestedDateText}</ToggleGroupItem>
-            {prompt.alternativeDates.map((alt) => (
-              <ToggleGroupItem key={alt.date} value={alt.date}>
-                {alt.text}
-              </ToggleGroupItem>
-            ))}
-          </ToggleGroup>
-        ) : null}
-        <div className="flex flex-wrap gap-2">
-          <Button variant="default" disabled={busy} onClick={() => answer(true)}>
-            Yes, around {prompt.alternativeDates.length > 0 ? "this date" : prompt.suggestedDateText}
-          </Button>
-          <Button variant="outline" disabled={busy} onClick={() => answer(false)}>
-            No
-          </Button>
-        </div>
-        {error ? (
-          <p role="alert" className="text-sm text-destructive">
-            {error}
-          </p>
-        ) : null}
-      </CardContent>
-    </Card>
+    <section className="flex flex-col gap-stack stage p-card">
+      <h2 className="text-heading text-card-foreground text-balance">Did you miss logging a period?</h2>
+      <p className="text-body text-card-foreground tabular-nums text-pretty">{prompt.question}</p>
+      {prompt.alternativeDates.length > 0 ? (
+        <ToggleGroup
+          variant="chip"
+          size="chip"
+          className="flex-wrap"
+          aria-label="Which date"
+          value={[selectedDate]}
+          onValueChange={(values) => {
+            const next = values[0];
+            if (next) setSelectedDate(next as typeof selectedDate);
+          }}
+        >
+          <ToggleGroupItem value={prompt.suggestedDate} className="tabular-nums">
+            <ChipCheck />
+            {prompt.suggestedDateText}
+          </ToggleGroupItem>
+          {prompt.alternativeDates.map((alt) => (
+            <ToggleGroupItem key={alt.date} value={alt.date} className="tabular-nums">
+              <ChipCheck />
+              {alt.text}
+            </ToggleGroupItem>
+          ))}
+        </ToggleGroup>
+      ) : null}
+      <div className="flex flex-wrap gap-2">
+        <Button variant="default" className="rounded-full tabular-nums" disabled={busy} onClick={() => answer(true)}>
+          Yes, around {prompt.alternativeDates.length > 0 ? "this date" : prompt.suggestedDateText}
+        </Button>
+        <Button variant="outline" className="rounded-full px-6" disabled={busy} onClick={() => answer(false)}>
+          No
+        </Button>
+      </div>
+      {error ? (
+        <p role="alert" className="text-label font-normal text-destructive">
+          {error}
+        </p>
+      ) : null}
+    </section>
   );
 }

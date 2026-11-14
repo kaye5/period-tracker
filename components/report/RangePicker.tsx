@@ -4,6 +4,7 @@ import { isValid as isValidCivilDate, type CivilDate } from "@/lib/date/civil";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Field, FieldLabel, FieldLegend, FieldSet } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { ChipCheck } from "@/components/daylog/ChipGroup";
 import { REPORT_RANGE_OPTIONS, type CustomRangeInput, type ReportRangeOption } from "@/components/report/reportRange";
 
 export interface RangePickerProps {
@@ -20,9 +21,12 @@ export interface RangePickerProps {
  * that bound rather than crashing. */
 export function RangePicker({ option, onOptionChange, custom, onCustomChange, error }: RangePickerProps) {
   return (
-    <FieldSet className="gap-3">
+    <FieldSet className="gap-stack">
       <FieldLegend variant="label">Report range</FieldLegend>
       <ToggleGroup
+        variant="chip"
+        size="chip"
+        className="flex-wrap"
         aria-label="Report range"
         value={[option]}
         onValueChange={(values) => {
@@ -31,13 +35,14 @@ export function RangePicker({ option, onOptionChange, custom, onCustomChange, er
         }}
       >
         {REPORT_RANGE_OPTIONS.map((opt) => (
-          <ToggleGroupItem key={opt.value} value={opt.value} className="h-11 px-4">
+          <ToggleGroupItem key={opt.value} value={opt.value}>
+            <ChipCheck />
             {opt.label}
           </ToggleGroupItem>
         ))}
       </ToggleGroup>
       {option === "custom" ? (
-        <div className="flex flex-wrap items-end gap-3">
+        <div className="flex flex-wrap items-end gap-stack">
           <Field className="w-auto">
             <FieldLabel htmlFor="report-range-start">Start date</FieldLabel>
             <Input
@@ -48,7 +53,7 @@ export function RangePicker({ option, onOptionChange, custom, onCustomChange, er
                 const v = e.target.value;
                 onCustomChange({ ...custom, from: isValidCivilDate(v) ? (v as CivilDate) : null });
               }}
-              className="h-11"
+              className="h-11 tabular-nums"
             />
           </Field>
           <Field className="w-auto">
@@ -61,13 +66,13 @@ export function RangePicker({ option, onOptionChange, custom, onCustomChange, er
                 const v = e.target.value;
                 onCustomChange({ ...custom, to: isValidCivilDate(v) ? (v as CivilDate) : null });
               }}
-              className="h-11"
+              className="h-11 tabular-nums"
             />
           </Field>
         </div>
       ) : null}
       {error ? (
-        <p role="alert" className="text-sm text-destructive">
+        <p role="alert" className="text-label font-normal text-destructive">
           {error}
         </p>
       ) : null}

@@ -1,67 +1,50 @@
 "use client";
 
 /**
- * Persistent primary navigation (agent I — integration). Four destinations: Dashboard
- * ("/"), History ("/history"), Report ("/report"), Settings ("/settings"). Logging has no
- * nav slot — it's reached from the dashboard's "Log today" button, tapping any calendar
- * day, or an insight's "view the records behind this", all of which open the app-wide
- * day-log dialog (there is no /log route).
+ * Persistent primary navigation (Daylight redesign). Four destinations: Today ("/"),
+ * Calendar ("/calendar"), Insights ("/history"), Settings ("/settings"). Logging has no
+ * nav slot — it happens on Today's quick-log card, or by tapping any day (week strip or
+ * calendar), all of which use the app-wide day-log sheet. The report lives under
+ * Settings → Privacy & data (and the Insights header), not in the bar.
  *
- * Hidden on the onboarding flow: onboarding is a full-screen, no-escape-hatch wizard
- * (SPEC.md U1 brief), so showing a tab bar under it would let a user skip the flow. This
- * component reads the current path and renders nothing while it starts with "/onboarding".
+ * Hidden on the onboarding flow (a full-screen, no-escape-hatch wizard, SPEC.md U1) and
+ * on the screen lock (/unlock), where every link would only redirect back.
  *
- * Accessibility (SPEC.md §4.5): each tab is a >=44x44px target (shadcn Button's default
- * height), the active tab carries aria-current="page" AND a bolder label AND a filled
- * background tint AND a distinct icon glyph per destination — never colour alone — labels
- * are always visible text, and the whole bar is a real <nav> landmark. Icons are
- * lucide-react (bundled, not a remote asset — SPEC.md §0.1) and aria-hidden, since the
- * visible label already names each destination.
+ * Accessibility (SPEC.md §4.5): each tab is ≥44px tall; the active tab carries
+ * aria-current="page" AND a bold label AND a filled pill behind its icon — never colour
+ * alone. Labels are always visible; icons are aria-hidden.
  */
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ComponentType } from "react";
-import { FileText, History, Home, Settings } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { CalendarDays, ChartNoAxesColumn, Settings, Sun } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface NavItem {
   href: string;
   label: string;
   icon: ComponentType<{ className?: string; "aria-hidden"?: boolean }>;
-  /** Extra path prefixes that should also mark this tab active. */
   match: (path: string) => boolean;
 }
 
+const startsWith = (prefix: string) => (p: string) => p === prefix || p.startsWith(`${prefix}/`);
+
 const NAV_ITEMS: NavItem[] = [
-  { href: "/", label: "Home", icon: Home, match: (p) => p === "/" },
-  {
-    href: "/history",
-    label: "History",
-    icon: History,
-    match: (p) => p === "/history" || p.startsWith("/history/"),
-  },
-  {
-    href: "/report",
-    label: "Report",
-    icon: FileText,
-    match: (p) => p === "/report" || p.startsWith("/report/"),
-  },
+  { href: "/", label: "Today", icon: Sun, match: (p) => p === "/" },
+  { href: "/calendar", label: "Calendar", icon: CalendarDays, match: startsWith("/calendar") },
+  { href: "/history", label: "Insights", icon: ChartNoAxesColumn, match: startsWith("/history") },
   {
     href: "/settings",
     label: "Settings",
     icon: Settings,
-    match: (p) => p === "/settings" || p.startsWith("/settings/"),
+    // The report is reached from Settings → Privacy & data, so it lights Settings.
+    match: (p) => startsWith("/settings")(p) || startsWith("/report")(p),
   },
 ];
 
 export function AppNav() {
   const pathname = usePathname() ?? "/";
 
-  // Onboarding is a full-screen flow — no nav (SPEC.md U1). Also hide on any not-yet-known
-  // path segment that is part of onboarding. The screen-lock (/unlock) is likewise a
-  // full-screen gate: showing the tab bar there would only offer links that redirect
-  // straight back to /unlock.
   if (pathname.startsWith("/onboarding") || pathname.startsWith("/unlock")) {
     return null;
   }
@@ -69,28 +52,32 @@ export function AppNav() {
   return (
     <nav
       aria-label="Primary"
-      className="sticky bottom-0 z-40 border-t border-border bg-background/95 backdrop-blur"
+      className="sticky bottom-0 z-40 border-t border-border bg-background/95 pb-[env(safe-area-inset-bottom)] shadow-float backdrop-blur"
     >
-      <ul className="mx-auto flex w-full max-w-2xl items-stretch justify-around px-2 py-1">
+      <ul className="mx-auto flex h-nav w-full max-w-2xl items-stretch justify-around px-2">
         {NAV_ITEMS.map((item) => {
           const active = item.match(pathname);
           const Icon = item.icon;
           return (
-            <li key={item.href} className="flex-1">
-              <Button
-                variant="ghost"
+            <li key={item.href} className="flex flex-1">
+              <Link
+                href={item.href}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "h-auto min-h-14 w-full flex-col gap-1 rounded-md px-2 py-2 text-xs",
-                  active
-                    ? "bg-muted font-semibold text-primary"
-                    : "font-medium text-muted-foreground",
+                  "group flex flex-1 flex-col items-center justify-center gap-1 rounded-lg text-caption transition-colors",
+                  active ? "font-bold text-foreground" : "font-medium text-muted-foreground hover:text-foreground",
                 )}
-                render={<Link href={item.href} />}
               >
-                <Icon aria-hidden className="size-[22px]" />
-                <span>{item.label}</span>
-              </Button>
+                <span
+                  className={cn(
+                    "flex h-7 w-14 items-center justify-center rounded-full transition-colors",
+                    active ? "bg-primary text-primary-foreground" : "group-hover:bg-muted",
+                  )}
+                >
+                  <Icon aria-hidden className="size-5" />
+                </span>
+                {item.label}
+              </Link>
             </li>
           );
         })}

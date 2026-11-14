@@ -10,8 +10,10 @@
  */
 
 @media print {
-  /* No nav chrome, no controls — only the report itself. */
-  .no-print {
+  /* No nav chrome, no controls — only the report itself. The bottom nav lives in the
+     root layout, so it is hidden here by its landmark label. */
+  .no-print,
+  nav[aria-label="Primary"] {
     display: none !important;
   }
 

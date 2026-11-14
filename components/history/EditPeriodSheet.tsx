@@ -2,11 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { PencilIcon } from "lucide-react";
 import type { CivilDate } from "@/lib/date/civil";
 import type { BleedingEpisode, BleedingKind, DayLog, FlowLevel } from "@/lib/domain/types";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { ChipCheck } from "@/components/daylog/ChipGroup";
 import { clientToday, fetchDayLogs, putDayLog } from "@/components/charts/api";
 import { formatCivilDateShort } from "@/components/charts/format";
 import {
@@ -38,11 +40,6 @@ const FLOW_OPTIONS: { value: FlowLevel; label: string }[] = [
   { value: "very_heavy", label: "Very heavy" },
 ];
 
-/** Every day-level toggle in this sheet is a quick-log control (SPEC.md §4.5: "the
- * calendar day cells and quick-log controls especially must stay >=44px") — the
- * ToggleGroupItem default (32px) is bumped up to the app's 44px minimum here. */
-const DAY_TOGGLE_CLASS = "h-11 px-3";
-
 /**
  * "Edit period" (SPEC.md's U4 brief: "Inline editing of a historical period goes
  * through app/api/day-logs and refreshes"). The trigger button mounts `EditPeriodSheetPanel`
@@ -54,7 +51,8 @@ export function EditPeriodSheet({ episode }: EditPeriodSheetProps) {
   const [open, setOpen] = useState(false);
   return (
     <>
-      <Button variant="ghost" onClick={() => setOpen(true)}>
+      <Button variant="ghost" className="rounded-full px-3 text-label" onClick={() => setOpen(true)}>
+        <PencilIcon aria-hidden />
         Edit period
       </Button>
       {open ? <EditPeriodSheetPanel episode={episode} onClose={() => setOpen(false)} /> : null}
@@ -124,33 +122,39 @@ function EditPeriodSheetPanel({ episode, onClose }: PanelProps) {
         if (!next) onClose();
       }}
     >
-      <SheetContent>
-        <SheetHeader>
-          <SheetTitle>Edit period</SheetTitle>
+      <SheetContent
+        side="bottom"
+        className="mx-auto max-h-[92dvh] w-full max-w-lg gap-0 rounded-t-stage shadow-float"
+      >
+        <SheetHeader className="px-gutter pt-section pr-14 pb-stack">
+          <SheetTitle className="text-heading">Edit period</SheetTitle>
         </SheetHeader>
-        <div className="flex flex-1 flex-col gap-3 overflow-y-auto px-4">
+        <div className="flex min-h-0 flex-1 flex-col gap-stack overflow-y-auto px-gutter">
           {loading || !draft ? (
             error ? (
-              <p role="alert" className="text-sm text-destructive">
+              <p role="alert" className="text-label font-normal text-destructive">
                 {error}
               </p>
             ) : (
-              <p className="text-sm text-muted-foreground">Loading…</p>
+              <p className="text-label font-normal text-muted-foreground">Loading…</p>
             )
           ) : (
             <>
-              <p className="text-sm text-foreground">
-                Currently: <strong>{describeBoundary(boundary)}</strong>
+              <p className="text-body text-popover-foreground tabular-nums">
+                Currently: <strong className="font-semibold">{describeBoundary(boundary)}</strong>
               </p>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-label font-normal text-muted-foreground text-pretty">
                 Adjust the days below. Marking a day before or after as spotting or period adds it to the
                 period; setting a day back to &ldquo;None&rdquo; removes it.
               </p>
-              <div className="flex max-h-[50vh] flex-col gap-3 overflow-y-auto">
+              <div className="flex flex-col divide-y divide-border">
                 {draft.rows.map((row) => (
-                  <div key={row.date} className="flex flex-wrap items-center gap-2 border-b border-border pb-3">
-                    <span className="w-24 shrink-0 text-sm text-foreground">{formatCivilDateShort(row.date)}</span>
+                  <div key={row.date} className="flex flex-col gap-2 py-stack">
+                    <span className="text-label text-popover-foreground tabular-nums">{formatCivilDateShort(row.date)}</span>
                     <ToggleGroup
+                      variant="chip"
+                      size="chip"
+                      className="flex-wrap"
                       aria-label={`Bleeding on ${formatCivilDateShort(row.date)}`}
                       value={[row.bleeding]}
                       onValueChange={(values) => {
@@ -159,13 +163,17 @@ function EditPeriodSheetPanel({ episode, onClose }: PanelProps) {
                       }}
                     >
                       {BLEEDING_OPTIONS.map((opt) => (
-                        <ToggleGroupItem key={opt.value} value={opt.value} className={DAY_TOGGLE_CLASS}>
+                        <ToggleGroupItem key={opt.value} value={opt.value}>
+                          <ChipCheck />
                           {opt.label}
                         </ToggleGroupItem>
                       ))}
                     </ToggleGroup>
                     {row.bleeding !== "none" ? (
                       <ToggleGroup
+                        variant="chip"
+                        size="chip"
+                        className="flex-wrap"
                         aria-label={`Flow on ${formatCivilDateShort(row.date)}`}
                         value={row.flow ? [row.flow] : []}
                         onValueChange={(values) => {
@@ -174,7 +182,8 @@ function EditPeriodSheetPanel({ episode, onClose }: PanelProps) {
                         }}
                       >
                         {FLOW_OPTIONS.map((opt) => (
-                          <ToggleGroupItem key={opt.value} value={opt.value} className={DAY_TOGGLE_CLASS}>
+                          <ToggleGroupItem key={opt.value} value={opt.value}>
+                            <ChipCheck />
                             {opt.label}
                           </ToggleGroupItem>
                         ))}
@@ -184,19 +193,19 @@ function EditPeriodSheetPanel({ episode, onClose }: PanelProps) {
                 ))}
               </div>
               {error ? (
-                <p role="alert" className="text-sm text-destructive">
+                <p role="alert" className="text-label font-normal text-destructive">
                   {error}
                 </p>
               ) : null}
             </>
           )}
         </div>
-        <SheetFooter className="flex-row justify-start gap-2">
-          <Button variant="default" disabled={saving || !draft} onClick={save}>
-            Save
-          </Button>
-          <Button variant="outline" disabled={saving} onClick={onClose}>
+        <SheetFooter className="flex-row justify-between gap-2 border-t border-border px-gutter py-stack">
+          <Button variant="outline" className="rounded-full" disabled={saving} onClick={onClose}>
             Cancel
+          </Button>
+          <Button variant="default" className="rounded-full px-6" disabled={saving || !draft} onClick={save}>
+            Save
           </Button>
         </SheetFooter>
       </SheetContent>

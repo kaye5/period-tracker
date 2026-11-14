@@ -1,13 +1,21 @@
 import type { Metadata } from "next";
+import localFont from "next/font/local";
 import "./globals.css";
 import { AppNav } from "@/components/nav/AppNav";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/sonner";
 import { DayLogDialogProvider } from "@/components/daylog/DayLogDialogProvider";
+import { MotionProvider } from "@/components/providers/MotionProvider";
 
-// Deliberately NOT using next/font/google (or any remote font): SPEC.md §0.1 requires
-// this app load no font, script, or image from a remote origin. app/globals.css's
-// --font-sans/--font-mono tokens are a system-font stack instead.
+// Manrope is self-hosted (app/fonts, OFL) through next/font/local — never next/font/google
+// or any remote font: SPEC.md §0.1 requires this app load no font, script, or image from a
+// remote origin (no-remote-origin.test.ts enforces it).
+const manrope = localFont({
+  src: "./fonts/Manrope-latin-wght.woff2",
+  weight: "200 800",
+  variable: "--font-manrope",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "Period Tracker",
@@ -30,14 +38,16 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="h-full antialiased">
+    <html lang="en" className={`${manrope.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col bg-background text-foreground">
-        <TooltipProvider>
-          <DayLogDialogProvider>
-            <div className="flex flex-1 flex-col">{children}</div>
-            <AppNav />
-          </DayLogDialogProvider>
-        </TooltipProvider>
+        <MotionProvider>
+          <TooltipProvider>
+            <DayLogDialogProvider>
+              <div className="flex flex-1 flex-col">{children}</div>
+              <AppNav />
+            </DayLogDialogProvider>
+          </TooltipProvider>
+        </MotionProvider>
         <Toaster />
       </body>
     </html>

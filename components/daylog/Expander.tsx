@@ -21,8 +21,8 @@ export interface ExpanderProps {
 export function Expander({ title, children, defaultOpen = false }: ExpanderProps) {
   const [open, setOpen] = useState(defaultOpen);
   return (
-    <Collapsible open={open} onOpenChange={setOpen} className="rounded-2xl border border-border bg-card">
-      <CollapsibleTrigger className="flex h-11 w-full items-center justify-between px-4 text-sm font-medium text-foreground">
+    <Collapsible open={open} onOpenChange={setOpen} className="rounded-xl border border-border bg-card">
+      <CollapsibleTrigger className="flex h-chip w-full items-center justify-between rounded-xl px-4 text-label text-foreground">
         <span>{title}</span>
         <ChevronDown
           aria-hidden="true"

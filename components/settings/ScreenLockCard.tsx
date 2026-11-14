@@ -35,18 +35,21 @@ export function ScreenLockCard() {
   }
 
   return (
-    <Card>
+    <Card className="gap-stack">
       <CardHeader>
-        <CardTitle>Screen lock</CardTitle>
-        <CardDescription>
+        {/* A sub-card of Settings' "Privacy & data" group, so its title is one level down. */}
+        <CardTitle role="heading" aria-level={3} className="text-body font-semibold">
+          Screen lock
+        </CardTitle>
+        <CardDescription className="text-label font-normal">
           Ask for a 6-digit PIN before the app&apos;s screens open in this browser. This
           doesn&apos;t encrypt your data or protect the database — it&apos;s a screen lock,
           not a vault.
         </CardDescription>
       </CardHeader>
-      <CardContent className="flex flex-col gap-4">
+      <CardContent className="flex flex-col gap-stack">
         {pinSet === null ? (
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <div className="flex min-h-chip items-center gap-2 text-label font-normal text-muted-foreground">
             <Spinner />
             Loading…
           </div>
@@ -94,7 +97,7 @@ function ViewMode({ pinSet, onMode }: { pinSet: boolean; onMode: (m: Mode) => vo
 
   if (!pinSet) {
     return (
-      <Button variant="outline" className="self-start" onClick={() => onMode("set")}>
+      <Button variant="outline" className="self-start rounded-full" onClick={() => onMode("set")}>
         <LockIcon data-icon="inline-start" />
         Set a PIN
       </Button>
@@ -102,23 +105,23 @@ function ViewMode({ pinSet, onMode }: { pinSet: boolean; onMode: (m: Mode) => vo
   }
   return (
     <>
-      <div className="flex items-center gap-2 text-sm text-foreground">
+      <div className="flex items-center gap-2 text-label text-card-foreground">
         <ShieldCheckIcon aria-hidden className="size-4 text-primary" />
         PIN lock is on.
       </div>
       <div className="flex flex-wrap gap-2">
-        <Button variant="outline" onClick={() => onMode("change")}>
+        <Button variant="outline" className="rounded-full" onClick={() => onMode("change")}>
           Change PIN
         </Button>
-        <Button variant="outline" onClick={() => onMode("remove")}>
+        <Button variant="outline" className="rounded-full" onClick={() => onMode("remove")}>
           Turn off
         </Button>
-        <Button variant="outline" onClick={() => void lockNow()}>
+        <Button variant="outline" className="rounded-full" onClick={() => void lockNow()}>
           <LockIcon data-icon="inline-start" />
           Lock now
         </Button>
       </div>
-      <p className="text-xs text-muted-foreground">
+      <p className="text-caption text-muted-foreground">
         If you forget this PIN there is no reset link — you&apos;d need direct database
         access to clear it. Keep it somewhere safe.
       </p>
@@ -174,7 +177,7 @@ function SetOrChangeForm({
 
   return (
     <form
-      className="flex flex-col gap-4"
+      className="flex flex-col gap-section"
       onSubmit={(e) => {
         e.preventDefault();
         void submit();
@@ -193,16 +196,16 @@ function SetOrChangeForm({
       <PinField label="Confirm PIN" value={confirm} onChange={setConfirm} disabled={busy} />
 
       {error ? (
-        <p role="alert" className="text-sm text-destructive">
+        <p role="alert" className="text-label font-normal text-destructive">
           {error}
         </p>
       ) : null}
 
       <div className="flex gap-2">
-        <Button type="submit" disabled={!ready || busy}>
+        <Button type="submit" className="rounded-full" disabled={!ready || busy}>
           {busy ? "Saving…" : requireCurrent ? "Change PIN" : "Turn on lock"}
         </Button>
-        <Button type="button" variant="ghost" onClick={onCancel} disabled={busy}>
+        <Button type="button" variant="ghost" className="rounded-full" onClick={onCancel} disabled={busy}>
           Cancel
         </Button>
       </div>
@@ -239,24 +242,24 @@ function RemoveForm({ onCancel, onDone }: { onCancel: () => void; onDone: () => 
 
   return (
     <form
-      className="flex flex-col gap-4"
+      className="flex flex-col gap-section"
       onSubmit={(e) => {
         e.preventDefault();
         void submit();
       }}
     >
-      <p className="text-sm text-muted-foreground">Enter your current PIN to turn the lock off.</p>
+      <p className="text-label font-normal text-muted-foreground">Enter your current PIN to turn the lock off.</p>
       <PinField label="Current PIN" value={current} onChange={setCurrent} disabled={busy} autoFocus />
       {error ? (
-        <p role="alert" className="text-sm text-destructive">
+        <p role="alert" className="text-label font-normal text-destructive">
           {error}
         </p>
       ) : null}
       <div className="flex gap-2">
-        <Button type="submit" variant="destructive" disabled={current.length !== PIN_LENGTH || busy}>
+        <Button type="submit" variant="destructive" className="rounded-full" disabled={current.length !== PIN_LENGTH || busy}>
           {busy ? "Turning off…" : "Turn off lock"}
         </Button>
-        <Button type="button" variant="ghost" onClick={onCancel} disabled={busy}>
+        <Button type="button" variant="ghost" className="rounded-full" onClick={onCancel} disabled={busy}>
           Cancel
         </Button>
       </div>
@@ -281,7 +284,7 @@ function PinField({
 }) {
   return (
     <div className="flex flex-col gap-2">
-      <span className="text-sm font-medium text-foreground">{label}</span>
+      <span className="text-label text-card-foreground">{label}</span>
       <PinInput
         label={label}
         value={value}

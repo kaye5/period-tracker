@@ -15,7 +15,7 @@ import { HistoryScreen } from "@/components/history/HistoryScreen";
 import { requirePageUnlock } from "@/lib/security/guard";
 
 export const metadata: Metadata = {
-  title: "History — Period Tracker",
+  title: "Insights — Period Tracker",
 };
 
 // Integration (agent I): render per-request, never at build time — this page awaits the
@@ -64,6 +64,7 @@ export default async function HistoryPage({ searchParams }: HistoryPageProps) {
       skipPrompts={result.skipPrompts}
       predictedVsActual={predictedVsActual}
       highlightedDates={highlightedDates}
+      today={today}
     />
   );
 }

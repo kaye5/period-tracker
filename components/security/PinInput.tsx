@@ -73,11 +73,11 @@ export function PinInput({
             <div
               key={i}
               className={cn(
-                "flex size-11 items-center justify-center rounded-md border border-input bg-transparent text-2xl leading-none tabular-nums transition-colors sm:size-12",
+                "flex size-11 items-center justify-center rounded-xl border border-input bg-card text-heading leading-none tabular-nums transition-colors sm:size-12",
                 filled ? "text-foreground" : "text-muted-foreground",
                 invalid && "border-destructive",
                 disabled && "opacity-60",
-                isNext && "peer-focus-visible:border-ring peer-focus-visible:ring-[3px] peer-focus-visible:ring-ring/50",
+                isNext && "peer-focus-visible:border-ring peer-focus-visible:ring-3 peer-focus-visible:ring-ring/50",
               )}
             >
               {filled ? (mask ? "•" : value[i]) : ""}

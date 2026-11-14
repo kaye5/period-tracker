@@ -11,10 +11,10 @@ export interface EmptyStateCardProps {
  * `./copy.ts`'s, never invented here. */
 export function EmptyStateCard({ heading, body }: EmptyStateCardProps) {
   return (
-    <Empty className="items-start rounded-xl border border-dashed border-primary/40 bg-muted/40 p-4 text-left">
-      <EmptyHeader className="items-start gap-1 text-left">
-        <EmptyTitle className="text-base font-semibold text-foreground">{heading}</EmptyTitle>
-        <EmptyDescription>{body}</EmptyDescription>
+    <Empty className="items-start gap-0 stage p-card text-left">
+      <EmptyHeader className="max-w-none items-start gap-1 text-left">
+        <EmptyTitle className="text-heading text-foreground">{heading}</EmptyTitle>
+        <EmptyDescription className="text-pretty">{body}</EmptyDescription>
       </EmptyHeader>
     </Empty>
   );

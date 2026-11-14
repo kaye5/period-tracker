@@ -1,6 +1,5 @@
 import type { ReactNode } from "react";
 import { ChevronDownIcon, ChevronUpIcon } from "lucide-react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 export interface ChartFrameProps {
@@ -40,58 +39,59 @@ export function ChartFrame({ title, description, summary, children, columns, row
   const hasData = rows.length > 0;
   if (!hasData) {
     return (
-      <figure className="m-0 flex flex-col gap-2">
-        <figcaption className="text-sm font-medium text-foreground">{title}</figcaption>
-        <p className="text-sm text-muted-foreground">{emptyMessage ?? "Nothing to show yet."}</p>
+      <figure className="m-0 flex flex-col gap-1">
+        <figcaption className="text-label text-card-foreground">{title}</figcaption>
+        <p className="text-label font-normal text-muted-foreground text-pretty">{emptyMessage ?? "Nothing to show yet."}</p>
       </figure>
     );
   }
+  // Flat figure, not a nested card: it sits inside the Insights "Trends" stage panel.
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{title}</CardTitle>
-        {description ? <CardDescription>{description}</CardDescription> : null}
-      </CardHeader>
-      <CardContent className="flex flex-col gap-2">
-        <div role="img" aria-label={summary} className="overflow-x-auto">
-          {children}
-        </div>
-        {legend}
-        <Collapsible>
-          <CollapsibleTrigger className="group/chart-trigger flex items-center gap-1 py-1 text-left text-sm text-muted-foreground outline-none hover:text-foreground focus-visible:text-foreground">
-            View as data table
-            <ChevronDownIcon className="size-3.5 shrink-0 group-aria-expanded/chart-trigger:hidden" />
-            <ChevronUpIcon className="hidden size-3.5 shrink-0 group-aria-expanded/chart-trigger:inline" />
-          </CollapsibleTrigger>
-          <CollapsibleContent>
-            <div className="overflow-x-auto pt-2">
-              <table className="w-full min-w-max border-collapse text-left text-xs">
-                <caption className="sr-only">{title}</caption>
-                <thead>
-                  <tr>
-                    {columns.map((col) => (
-                      <th key={col} scope="col" className="border-b border-border px-2 py-1 font-medium text-foreground">
-                        {col}
-                      </th>
+    <figure className="m-0 flex flex-col gap-stack">
+      <figcaption className="flex flex-col gap-1">
+        <span className="text-label text-card-foreground">{title}</span>
+        {description ? (
+          <span className="text-caption text-muted-foreground text-pretty">{description}</span>
+        ) : null}
+      </figcaption>
+      <div role="img" aria-label={summary} className="overflow-x-auto">
+        {children}
+      </div>
+      {legend}
+      <Collapsible>
+        <CollapsibleTrigger className="group/chart-trigger -ml-1 flex h-chip items-center gap-1 rounded-full px-1 text-left text-label text-muted-foreground hover:text-foreground">
+          View as data table
+          <ChevronDownIcon aria-hidden className="size-4 shrink-0 group-aria-expanded/chart-trigger:hidden" />
+          <ChevronUpIcon aria-hidden className="hidden size-4 shrink-0 group-aria-expanded/chart-trigger:inline" />
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-max border-collapse text-left text-caption tabular-nums">
+              <caption className="sr-only">{title}</caption>
+              <thead>
+                <tr>
+                  {columns.map((col) => (
+                    <th key={col} scope="col" className="border-b border-border px-2 py-1.5 font-medium text-card-foreground">
+                      {col}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((row, i) => (
+                  <tr key={i}>
+                    {row.map((cell, j) => (
+                      <td key={j} className="border-b border-border px-2 py-1.5 text-card-foreground">
+                        {cell}
+                      </td>
                     ))}
                   </tr>
-                </thead>
-                <tbody>
-                  {rows.map((row, i) => (
-                    <tr key={i}>
-                      {row.map((cell, j) => (
-                        <td key={j} className="border-b border-border px-2 py-1 text-foreground">
-                          {cell}
-                        </td>
-                      ))}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </CollapsibleContent>
-        </Collapsible>
-      </CardContent>
-    </Card>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </CollapsibleContent>
+      </Collapsible>
+    </figure>
   );
 }

@@ -84,18 +84,18 @@ export function UnlockScreen() {
   }
 
   return (
-    <main className="flex flex-1 flex-col items-center justify-center px-6 py-16">
-      <div className="w-full max-w-xs text-center">
-        <div className="mx-auto mb-6 flex size-14 items-center justify-center rounded-full bg-muted text-primary">
-          <LockIcon aria-hidden className="size-6" />
+    <main className="flex flex-1 flex-col items-center justify-center px-gutter py-section">
+      <div className="flex w-full max-w-md flex-col items-center gap-section stage p-card text-center">
+        <div className="flex flex-col items-center gap-2">
+          <LockIcon aria-hidden className="mb-1 size-5 text-muted-foreground" />
+          <h1 className="text-heading text-card-foreground">Enter your PIN</h1>
+          <p className="text-label font-normal text-muted-foreground text-pretty">
+            This app is locked. Enter your 6-digit PIN to continue.
+          </p>
         </div>
-        <h1 className="text-xl font-semibold text-foreground">Enter your PIN</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          This app is locked. Enter your 6-digit PIN to continue.
-        </p>
 
         <form
-          className="mt-8"
+          className="flex w-full flex-col items-center"
           onSubmit={(e) => {
             e.preventDefault();
             void submit(pin);
@@ -120,21 +120,21 @@ export function UnlockScreen() {
           <p
             role="status"
             aria-live="polite"
-            className="mt-4 min-h-5 text-sm text-destructive"
+            className="mt-stack min-h-5 text-label font-normal text-destructive"
           >
             {isLockedOut ? `Too many attempts. Try again in ${cooldownLeft}s.` : message}
           </p>
 
           <Button
             type="submit"
-            className="mt-2 w-full"
+            className="mt-2 w-full rounded-full"
             disabled={pin.length !== PIN_LENGTH || status === "verifying" || isLockedOut}
           >
             {status === "verifying" ? "Checking…" : "Unlock"}
           </Button>
         </form>
 
-        <p className="mt-8 text-xs text-muted-foreground">
+        <p className="text-caption text-muted-foreground text-pretty">
           A PIN keeps these screens from opening in this browser. It does not encrypt your
           data or protect the database.
         </p>

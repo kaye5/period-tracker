@@ -18,7 +18,7 @@
  * "simplify" this away — removing it collapses the label onto the chips.
  */
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { cn } from "@/lib/utils";
+import { Check } from "lucide-react";
 
 export interface ChipOption<T> {
   value: T;
@@ -48,11 +48,12 @@ export interface MultiChipGroupProps<T extends string | number> extends ChipGrou
 
 export type ChipGroupProps<T extends string | number> = SingleChipGroupProps<T> | MultiChipGroupProps<T>;
 
-/** SPEC.md §4.5: every interactive target ≥44×44px, including chips — shadcn's Toggle
- * defaults are more compact (h-8) for dense inline use, so each chip is bumped to the
- * app's 44px minimum here rather than by editing the shared primitive. */
-const CHIP_ITEM_CLASS =
-  "h-11 rounded-full px-4 aria-pressed:border-primary aria-pressed:bg-primary aria-pressed:text-primary-foreground aria-pressed:hover:bg-primary";
+/** Shown only while the chip is pressed (pure CSS, via the toggle's group), so a selected
+ * chip differs by a glyph as well as by its fill — never colour alone (SPEC.md §4.2). The
+ * 44px height comes from the toggle's `chip` size (SPEC.md §4.5). */
+export function ChipCheck() {
+  return <Check aria-hidden className="hidden group-aria-pressed/toggle:inline" />;
+}
 
 function keyFor(value: string | number): string {
   return String(value);
@@ -67,7 +68,7 @@ export function ChipGroup<T extends string | number>(props: ChipGroupProps<T>) {
     const selectedKeys = value !== undefined ? [keyFor(value)] : [];
     return (
       <fieldset className="flex flex-col gap-2">
-        <legend className="mb-2 text-sm font-medium text-foreground">{legend}</legend>
+        <legend className="mb-2 text-label text-foreground">{legend}</legend>
         <ToggleGroup
           value={selectedKeys}
           onValueChange={(next) => {
@@ -84,9 +85,10 @@ export function ChipGroup<T extends string | number>(props: ChipGroupProps<T>) {
             <ToggleGroupItem
               key={keyFor(option.value)}
               value={keyFor(option.value)}
-              variant="outline"
-              className={cn(CHIP_ITEM_CLASS)}
+              variant="chip"
+              size="chip"
             >
+              <ChipCheck />
               {option.label}
             </ToggleGroupItem>
           ))}
@@ -99,7 +101,7 @@ export function ChipGroup<T extends string | number>(props: ChipGroupProps<T>) {
   const selectedKeys = value.map(keyFor);
   return (
     <fieldset className="flex flex-col gap-2">
-      <legend className="mb-2 text-sm font-medium text-foreground">{legend}</legend>
+      <legend className="mb-2 text-label text-foreground">{legend}</legend>
       <ToggleGroup
         value={selectedKeys}
         multiple
@@ -112,9 +114,10 @@ export function ChipGroup<T extends string | number>(props: ChipGroupProps<T>) {
           <ToggleGroupItem
             key={keyFor(option.value)}
             value={keyFor(option.value)}
-            variant="outline"
-            className={cn(CHIP_ITEM_CLASS)}
+            variant="chip"
+            size="chip"
           >
+            <ChipCheck />
             {option.label}
           </ToggleGroupItem>
         ))}

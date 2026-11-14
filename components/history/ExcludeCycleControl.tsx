@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { EyeIcon, EyeOffIcon } from "lucide-react";
 import type { CivilDate } from "@/lib/date/civil";
 import { Button } from "@/components/ui/button";
 import {
@@ -72,11 +73,12 @@ export function ExcludeCycleControl({ cycleStartDate, excluded }: ExcludeCycleCo
   if (excluded) {
     return (
       <div className="flex flex-col gap-1">
-        <Button variant="outline" disabled={busy} onClick={unexclude}>
+        <Button variant="outline" className="rounded-full px-3 text-label" disabled={busy} onClick={unexclude}>
+          <EyeIcon aria-hidden />
           Include in statistics again
         </Button>
         {error ? (
-          <p role="alert" className="text-sm text-destructive">
+          <p role="alert" className="text-label font-normal text-destructive">
             {error}
           </p>
         ) : null}
@@ -95,7 +97,14 @@ export function ExcludeCycleControl({ cycleStartDate, excluded }: ExcludeCycleCo
         }
       }}
     >
-      <AlertDialogTrigger render={<Button variant="ghost">Exclude from statistics</Button>} />
+      <AlertDialogTrigger
+        render={
+          <Button variant="ghost" className="rounded-full px-3 text-label">
+            <EyeOffIcon aria-hidden />
+            Exclude from statistics
+          </Button>
+        }
+      />
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>Exclude this cycle</AlertDialogTitle>
@@ -118,14 +127,16 @@ export function ExcludeCycleControl({ cycleStartDate, excluded }: ExcludeCycleCo
         </Field>
 
         {error ? (
-          <p role="alert" className="text-sm text-destructive">
+          <p role="alert" className="text-label font-normal text-destructive">
             {error}
           </p>
         ) : null}
 
         <AlertDialogFooter>
-          <AlertDialogCancel disabled={busy}>Cancel</AlertDialogCancel>
-          <AlertDialogAction disabled={busy} onClick={confirmExclude}>
+          <AlertDialogCancel className="rounded-full" disabled={busy}>
+            Cancel
+          </AlertDialogCancel>
+          <AlertDialogAction className="rounded-full" disabled={busy} onClick={confirmExclude}>
             Exclude
           </AlertDialogAction>
         </AlertDialogFooter>

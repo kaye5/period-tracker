@@ -16,9 +16,10 @@
  * keyboard focus, and wiring the drag gesture to a confirmation step before it writes
  * anything.
  */
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode, type Ref } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
+import { AnimatePresence, motion, useIsPresent, type Variants } from "motion/react";
+import { Check, ChevronLeft, ChevronRight, Diamond } from "lucide-react";
 import { addDays, type CivilDate } from "@/lib/date/civil";
 import type {
   BleedingEpisode,
@@ -29,7 +30,6 @@ import type {
 } from "@/lib/domain/types";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
   Sheet,
   SheetContent,
@@ -41,18 +41,6 @@ import { Legend, type LegendItem } from "@/components/ui/Legend";
 import { DayCell } from "./DayCell";
 import { buildCalendarWeeks, dayLogLookup } from "./calendarCells";
 import { civilDateParts, formatMonthYearLabel, weekdayNameForColumn } from "./civilDateDisplay";
-import {
-  IconCheck,
-  IconDropletOutlineDashed,
-  IconDropletSolid,
-  IconFollicularUnderline,
-  IconLutealUnderline,
-  IconNoteMark,
-  IconPeriodContinues,
-  IconPeriodEnd,
-  IconSpottingMark,
-  IconStar,
-} from "./icons";
 import { buildQuickPeriodDayLogs, formatDragRangeLabel, isDateWithinDragRange } from "./quickPeriodLog";
 import { useDragSelect, type DragRange } from "./useDragSelect";
 
@@ -70,8 +58,8 @@ export interface CalendarProps {
   fertility?: FertilityEstimate | null;
   fertilityEnabled: boolean;
   /** Engine cycles (most-recent-first, `EngineOutput.cycles`) — only used to locate
-   * which cycle's start date a day falls in, for the estimated-phase underline. Optional;
-   * omitted just means no phase shading is shown. */
+   * which cycle's start date a day falls in, for the estimated phase in each day's
+   * accessible label (no longer drawn on the grid; phase lives on Today's cycle strip). */
   cycles?: Cycle[];
   /** `EngineOutput.stats.periodDuration` — the user's own typical period length. Drives
    * the "period expected to continue" days on an ongoing period. */
@@ -100,6 +88,8 @@ export function Calendar({
   const router = useRouter();
   const [displayYear, setDisplayYear] = useState(year);
   const [displayMonth, setDisplayMonth] = useState(month);
+  /** Sign of the last month change (-1 back, 1 forward): which way the grid slides. */
+  const [direction, setDirection] = useState(0);
   const [focusedDate, setFocusedDate] = useState<CivilDate>(today);
   const pendingFocusRef = useRef<CivilDate | null>(null);
   const cellRefs = useRef(new Map<CivilDate, HTMLButtonElement>());
@@ -148,10 +138,21 @@ export function Calendar({
     });
   }, [weeks, today]);
 
-  const registerRef = useCallback((date: CivilDate, el: HTMLButtonElement | null) => {
-    if (el) cellRefs.current.set(date, el);
-    else cellRefs.current.delete(date);
+  // During the month slide the outgoing and incoming grids are both mounted and can share
+  // dates (leading/trailing days), so a cell only unregisters itself if it is still the
+  // registered element — the outgoing grid unmounting must not drop the incoming cell.
+  const registerRef = useCallback((date: CivilDate, el: HTMLButtonElement) => {
+    cellRefs.current.set(date, el);
+    return () => {
+      if (cellRefs.current.get(date) === el) cellRefs.current.delete(date);
+    };
   }, []);
+
+  function showMonth(y: number, m: number) {
+    setDirection(Math.sign(y * 12 + m - (displayYear * 12 + displayMonth)));
+    setDisplayYear(y);
+    setDisplayMonth(m);
+  }
 
   function openDay(date: CivilDate) {
     onSelectDay(date);
@@ -166,8 +167,7 @@ export function Calendar({
     }
     const { year: y, month: m } = civilDateParts(date);
     pendingFocusRef.current = date;
-    setDisplayYear(y);
-    setDisplayMonth(m);
+    showMonth(y, m);
   }
 
   function handleKeyNavigate(date: CivilDate, key: string) {
@@ -191,14 +191,12 @@ export function Calendar({
     const zeroBased = displayMonth - 1 + delta;
     const newYear = displayYear + Math.floor(zeroBased / 12);
     const newMonth = ((zeroBased % 12) + 12) % 12 + 1;
-    setDisplayYear(newYear);
-    setDisplayMonth(newMonth);
+    showMonth(newYear, newMonth);
   }
 
   function goToday() {
     const { year: y, month: m } = civilDateParts(today);
-    setDisplayYear(y);
-    setDisplayMonth(m);
+    showMonth(y, m);
   }
 
   // --- drag-select -> quick period log -------------------------------------------
@@ -251,27 +249,38 @@ export function Calendar({
   const columns = [0, 1, 2, 3, 4, 5, 6];
 
   return (
-    <div className="flex flex-col gap-4 rounded-2xl border border-border bg-card p-4 shadow-sm sm:p-5">
-      {/* One row, not two: the month label and "Today" sit on the same line as the arrows.
-          "Today" was a 16px-tall underlined text link — below SPEC.md §4.5's 44px minimum
-          target — and is now a real button. It stays ENABLED on today's own month:
-          `goToday` is idempotent there, and disabling it dropped keyboard focus to
-          <body> the instant it was activated (Base UI renders a real `disabled`
-          attribute, removing the focused element from the tab order), besides hiding the
-          control's existence from anyone tabbing the header on the current month. */}
-      <div className="flex items-center justify-between gap-1">
-        <Button variant="ghost" size="icon" aria-label="Previous month" onClick={() => shiftMonth(-1)}>
-          <ChevronLeft aria-hidden="true" />
+    <div className="stage flex flex-col gap-stack p-card">
+      {/* One row: the arrows, the month label and "Today". "Today" stays ENABLED on
+          today's own month: `goToday` is idempotent there, and disabling it dropped
+          keyboard focus to <body> the instant it was activated (Base UI renders a real
+          `disabled` attribute, removing the focused element from the tab order), besides
+          hiding the control's existence from anyone tabbing the header on the current
+          month. */}
+      <div className="-mx-2 flex items-center justify-between gap-1">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="rounded-full"
+          aria-label="Previous month"
+          onClick={() => shiftMonth(-1)}
+        >
+          <ChevronLeft aria-hidden="true" className="size-5" />
         </Button>
-        <h2 className="text-base font-semibold text-foreground" aria-live="polite">
+        <h2 className="text-heading text-foreground tabular-nums" aria-live="polite">
           {formatMonthYearLabel(displayYear, displayMonth)}
         </h2>
-        <div className="flex items-center gap-0.5">
-          <Button variant="ghost" className="px-3" onClick={goToday}>
+        <div className="flex items-center gap-1">
+          <Button variant="ghost" className="rounded-full px-3 text-label" onClick={goToday}>
             Today
           </Button>
-          <Button variant="ghost" size="icon" aria-label="Next month" onClick={() => shiftMonth(1)}>
-            <ChevronRight aria-hidden="true" />
+          <Button
+            variant="ghost"
+            size="icon"
+            className="rounded-full"
+            aria-label="Next month"
+            onClick={() => shiftMonth(1)}
+          >
+            <ChevronRight aria-hidden="true" className="size-5" />
           </Button>
         </div>
       </div>
@@ -282,54 +291,59 @@ export function Calendar({
           press raises the callout/magnifier. `select-none` emits both the -webkit- and
           unprefixed user-select; `touch-callout` is iOS-only; `touch-action-manipulation`
           drops the 300ms double-tap-zoom delay on taps. DayCell is a raw <button>, so it
-          does NOT inherit the `select-none` that components/ui/button.tsx carries. */}
+          does NOT inherit the `select-none` that components/ui/button.tsx carries.
+          `relative` anchors the outgoing month while it slides out (popLayout). */}
       <div
         role="grid"
         aria-label={`Calendar, ${formatMonthYearLabel(displayYear, displayMonth)}`}
-        className="flex touch-manipulation flex-col gap-2.5 select-none [-webkit-touch-callout:none]"
+        className="relative -mx-2 flex touch-manipulation flex-col gap-1 select-none [-webkit-touch-callout:none]"
       >
-        <div role="row" className="mb-1 grid grid-cols-7 gap-1">
+        <div role="row" className="grid grid-cols-7">
           {columns.map((col) => (
             <div
               key={col}
               role="columnheader"
-              className="flex h-6 items-center justify-center text-xs font-medium text-muted-foreground"
+              className="flex h-6 items-center justify-center text-caption text-muted-foreground"
             >
               {weekdayNameForColumn(col, weekStartsOn, true)}
             </div>
           ))}
         </div>
 
-        {weeks.map((week, weekIndex) => (
-          <div role="row" key={weekIndex} className="grid grid-cols-7 place-items-center gap-1">
-            {week.map((cell) => (
-              <DayCell
-                key={cell.date}
-                date={cell.date}
-                dayNumber={cell.dayNumber}
-                inCurrentMonth={cell.inCurrentMonth}
-                indicators={cell.indicators}
-                accessibleLabel={cell.accessibleLabel}
-                isFocusTarget={cell.date === focusedDate}
-                isPendingSelection={isDateWithinDragRange(cell.date, highlightRange)}
-                onActivate={openDay}
-                onFocused={setFocusedDate}
-                onKeyNavigate={handleKeyNavigate}
-                onPointerDownCell={drag.beginAt}
-                registerRef={registerRef}
-              />
+        <AnimatePresence mode="popLayout" initial={false} custom={direction}>
+          <MonthRows key={`${displayYear}-${displayMonth}`} direction={direction}>
+            {weeks.map((week, weekIndex) => (
+              <div role="row" key={weekIndex} className="grid grid-cols-7 place-items-center">
+                {week.map((cell) => (
+                  <DayCell
+                    key={cell.date}
+                    date={cell.date}
+                    dayNumber={cell.dayNumber}
+                    inCurrentMonth={cell.inCurrentMonth}
+                    indicators={cell.indicators}
+                    accessibleLabel={cell.accessibleLabel}
+                    isFocusTarget={cell.date === focusedDate}
+                    isPendingSelection={isDateWithinDragRange(cell.date, highlightRange)}
+                    onActivate={openDay}
+                    onFocused={setFocusedDate}
+                    onKeyNavigate={handleKeyNavigate}
+                    onPointerDownCell={drag.beginAt}
+                    registerRef={registerRef}
+                  />
+                ))}
+              </div>
             ))}
-          </div>
-        ))}
+          </MonthRows>
+        </AnimatePresence>
       </div>
 
-      <p className="text-xs text-muted-foreground">Drag across several days to mark a period.</p>
+      <CalendarLegend fertilityEnabled={fertilityEnabled} />
 
-      <CalendarLegend
-        fertilityEnabled={fertilityEnabled}
-        fertility={fertility}
-        hasCycles={(cycles?.length ?? 0) > 0}
-      />
+      <p className="text-caption text-muted-foreground">Drag across several days to mark a period.</p>
+
+      {fertilityEnabled && fertility ? (
+        <p className="rounded-xl bg-muted px-3 py-2.5 text-caption text-muted-foreground">{fertility.disclaimer}</p>
+      ) : null}
 
       <Sheet
         open={pendingRange != null}
@@ -337,23 +351,26 @@ export function Calendar({
           if (!open) handleCancelRange();
         }}
       >
-        <SheetContent side="bottom">
-          <SheetHeader>
-            <SheetTitle>Confirm period days</SheetTitle>
+        <SheetContent
+          side="bottom"
+          className="mx-auto w-full max-w-lg gap-stack rounded-t-stage px-gutter pt-section pb-section shadow-float"
+        >
+          <SheetHeader className="p-0 pr-12">
+            <SheetTitle className="text-heading">Confirm period days</SheetTitle>
           </SheetHeader>
-          <div className="flex flex-col gap-2 px-4">
-            <p className="text-sm text-foreground">{pendingRange ? formatDragRangeLabel(pendingRange) : ""}</p>
+          <div className="flex flex-col gap-stack">
+            <p className="text-body text-foreground">{pendingRange ? formatDragRangeLabel(pendingRange) : ""}</p>
             {commitError ? (
               <Alert variant="destructive">
                 <AlertDescription>{commitError}</AlertDescription>
               </Alert>
             ) : null}
           </div>
-          <SheetFooter className="flex-row justify-end gap-2">
-            <Button variant="ghost" onClick={handleCancelRange} disabled={committing}>
+          <SheetFooter className="mt-2 flex-row justify-end gap-2 p-0">
+            <Button variant="ghost" className="rounded-full px-5" onClick={handleCancelRange} disabled={committing}>
               Cancel
             </Button>
-            <Button variant="default" onClick={handleConfirmRange} disabled={committing}>
+            <Button className="rounded-full px-5" onClick={handleConfirmRange} disabled={committing}>
               {committing ? "Saving…" : "Mark as period"}
             </Button>
           </SheetFooter>
@@ -363,177 +380,79 @@ export function Calendar({
   );
 }
 
-/** A miniature of a real day cell — same fill, same outline style, same glyph — so a
- * legend row shows what is actually on the grid instead of an abstract colour swatch. */
-function CellSample({ className, children }: { className?: string; children?: ReactNode }) {
+/** The month change slides the grid ~16px in the direction of travel with a fade (brief
+ * §4: orientation). MotionConfig reducedMotion="user" (global) drops the slide. */
+const slide: Variants = {
+  enter: (direction: number) => ({ x: direction * 16, opacity: 0 }),
+  center: { x: 0, opacity: 1 },
+  exit: (direction: number) => ({ x: direction * -16, opacity: 0 }),
+};
+
+/** One month's rows. While it slides out it is `inert`, so the outgoing copy can neither
+ * take a tap nor be reached by keyboard or assistive tech. */
+function MonthRows({
+  direction,
+  children,
+  ref,
+}: {
+  direction: number;
+  children: ReactNode;
+  ref?: Ref<HTMLDivElement>;
+}) {
+  const isPresent = useIsPresent();
   return (
-    <span
-      aria-hidden="true"
-      className={`flex size-4 shrink-0 items-center justify-center rounded-full ${className ?? ""}`}
+    <motion.div
+      ref={ref}
+      role="rowgroup"
+      custom={direction}
+      variants={slide}
+      initial="enter"
+      animate="center"
+      exit="exit"
+      transition={{ duration: 0.2, ease: "easeOut" }}
+      inert={!isPresent}
+      className="flex flex-col gap-1"
     >
       {children}
-    </span>
+    </motion.div>
   );
 }
 
-/** The only reference for what every glyph/fill on the grid means (SPEC.md §4.2: colour
- * never carries meaning alone, so each row pairs the cell's own appearance with the same
- * text fragment `describeDayIndicators` puts in the accessible name).
- *
- * Grouped into short sections with the shared fact in the heading ("Expected — outlined,
- * never filled"), which is what let most of the paragraph-long per-row descriptions go:
- * this was one flat list of thirteen rows, i.e. a reference manual rather than a legend.
- * Merged rows cover markers that only ever make sense as a pair (the two phase
- * underlines; the two day-log marks). Fertility rows still only render when the feature
- * is enabled, and the estimate disclaimer stays OUTSIDE the collapsible, adjacent to them
- * — never behind a toggle. */
-function CalendarLegend({
-  fertilityEnabled,
-  fertility,
-  hasCycles,
-}: {
-  fertilityEnabled: boolean;
-  fertility: FertilityEstimate | null | undefined;
-  /** Whether the grid was given cycles — phase markers cannot render without them. */
-  hasCycles: boolean;
-}) {
-  const sections: { title: string; items: LegendItem[] }[] = [
-    {
-      title: "Recorded — solid fill",
-      items: [
-        {
-          icon: (
-            <CellSample className="bg-primary">
-              <IconDropletSolid className="size-2.5 text-primary-foreground" />
-            </CellSample>
-          ),
-          label: "Period",
-        },
-        {
-          icon: (
-            <CellSample className="bg-primary/60">
-              <IconSpottingMark className="size-2.5 text-primary-foreground" />
-            </CellSample>
-          ),
-          label: "Spotting",
-          description: "Never counted as the start of a period.",
-        },
-        {
-          icon: <IconPeriodEnd className="size-3 text-primary" />,
-          label: "Last day of a period",
-          description: "Mark it in the day log to close the period.",
-        },
-      ],
-    },
-    {
-      title: "Expected — outlined, never filled",
-      items: [
-        {
-          icon: (
-            <CellSample className="border border-dashed border-primary">
-              <IconDropletOutlineDashed className="size-2.5 text-primary" />
-            </CellSample>
-          ),
-          label: "Next period, predicted",
-          description: "Dashed. The dates it could start between are on the next-period card.",
-        },
-        {
-          icon: (
-            <CellSample className="border border-dotted border-primary">
-              <IconPeriodContinues className="size-2.5 text-primary" />
-            </CellSample>
-          ),
-          label: "This period, expected to continue",
-          description: "Dotted, and only as long as your own typical period.",
-        },
-      ],
-    },
+/** Mini versions of the marks `DayMark` draws (the same shapes as Today's week-strip key),
+ * so the key shows what is actually on the grid. Every estimate says so in words. */
+const mark = {
+  period: <span className="size-3 rounded-full bg-phase-menstrual" />,
+  spotting: (
+    <span className="flex size-3 items-center justify-center rounded-full border-2 border-phase-menstrual">
+      <span className="size-0.5 rounded-full bg-phase-menstrual" />
+    </span>
+  ),
+  predicted: <span className="size-3 rounded-full border-2 border-dashed border-phase-menstrual" />,
+  expected: <span className="size-3 rounded-full border-2 border-dotted border-phase-menstrual" />,
+  fertile: <span className="h-1 w-3 rounded-full bg-phase-fertile" />,
+  ovulation: <Diamond className="size-2.5 fill-phase-fertile text-phase-fertile" />,
+  today: <span className="size-2 rounded-full ring-2 ring-today ring-offset-1 ring-offset-card" />,
+  notes: <span className="size-2 rounded-full bg-muted-foreground" />,
+  nothing: <Check className="size-3 text-muted-foreground" strokeWidth={3} />,
+};
+
+/** Always-visible key for every mark the grid can draw (SPEC.md §4.2: the shape and a word
+ * for each, never colour alone). Fertility marks appear only when the feature is on. */
+function CalendarLegend({ fertilityEnabled }: { fertilityEnabled: boolean }) {
+  const items: LegendItem[] = [
+    { icon: mark.period, label: "Period" },
+    { icon: mark.spotting, label: "Spotting" },
+    { icon: mark.predicted, label: "Next period (estimate)" },
+    { icon: mark.expected, label: "Period continuing (estimate)" },
+    ...(fertilityEnabled
+      ? [
+          { icon: mark.fertile, label: "Fertile window (estimate)" },
+          { icon: mark.ovulation, label: "Ovulation (estimate)" },
+        ]
+      : []),
+    { icon: mark.today, label: "Today" },
+    { icon: mark.notes, label: "Symptoms or notes" },
+    { icon: mark.nothing, label: "Nothing to report" },
   ];
-
-  if (fertilityEnabled) {
-    sections.push({
-      title: "Estimated",
-      items: [
-        {
-          icon: <CellSample className="border-2 border-dashed border-chart-3" />,
-          label: "Fertile window",
-        },
-        { icon: <IconStar className="size-3 text-chart-3" />, label: "Ovulation" },
-        // The phase row needs `cycles` as well: without them every day's phase is null,
-        // and a legend must never advertise a marker that cannot appear on the grid.
-        ...(hasCycles
-          ? [
-              {
-                icon: (
-                  <>
-                    <IconFollicularUnderline className="size-3 text-chart-4" />
-                    <IconLutealUnderline className="size-3 text-chart-5" />
-                  </>
-                ),
-                label: "Phase, underlined",
-                description: "Dashed before ovulation (follicular), solid after (luteal).",
-              },
-            ]
-          : []),
-      ],
-    });
-  }
-
-  sections.push({
-    title: "Other marks",
-    items: [
-      { icon: <CellSample className="ring-2 ring-today" />, label: "Today" },
-      {
-        icon: (
-          <>
-            <IconNoteMark className="size-3 text-muted-foreground" />
-            <IconCheck className="size-3 text-muted-foreground" />
-          </>
-        ),
-        label: "Symptoms or notes logged, or nothing to report",
-      },
-    ],
-  });
-
-  return (
-    <div className="flex flex-col gap-2">
-      {/* The legend is reference info, so it collapses to keep the calendar uncluttered
-          (starts minimised). The fertility disclaimer is deliberately kept OUTSIDE the
-          collapsible — SPEC.md requires it to stay adjacent to the fertile-window markers,
-          never hidden behind a toggle. */}
-      <Collapsible className="rounded-xl border border-border bg-muted/50">
-        <CollapsibleTrigger
-          render={
-            <Button
-              variant="ghost"
-              className="group h-11 w-full justify-between rounded-xl px-4 text-sm font-medium text-foreground hover:bg-transparent"
-            />
-          }
-        >
-          What the marks mean
-          <ChevronDown
-            aria-hidden
-            data-icon="inline-end"
-            className="text-muted-foreground transition-transform group-data-[panel-open]:rotate-180"
-          />
-        </CollapsibleTrigger>
-        <CollapsibleContent className="flex flex-col gap-4 px-4 pb-4">
-          {sections.map((section) => (
-            <div key={section.title} className="flex flex-col gap-2">
-              {/* A real heading, and the list below deliberately has NO aria-label: the
-                  heading already names it, and doing both made every section announce
-                  its title twice. */}
-              <h3 className="text-xs font-semibold text-muted-foreground">{section.title}</h3>
-              <Legend items={section.items} />
-            </div>
-          ))}
-        </CollapsibleContent>
-      </Collapsible>
-      {fertilityEnabled && fertility ? (
-        <p className="rounded-xl border border-border bg-muted/50 p-3 text-xs text-muted-foreground">
-          {fertility.disclaimer}
-        </p>
-      ) : null}
-    </div>
-  );
+  return <Legend inline label="Calendar key" items={items} />;
 }

@@ -39,7 +39,7 @@ interface FlowByDayDatum {
   very_heavy: number;
 }
 
-// Sequential rose ramp (flow is ordered data, not five categorical hues — SPEC.md's
+// Sequential ink ramp (flow is ordered data, not five categorical hues — SPEC.md's
 // U4 brief); tokens registered in app/globals.css as --chart-flow-1..5.
 const chartConfig = {
   spotting: { label: FLOW_LABEL.spotting, color: "var(--chart-flow-1)" },
@@ -55,7 +55,7 @@ const MIN_WIDTH = 360;
 /**
  * "Flow by period day" (SPEC.md's U4 brief). One 100%-stacked bar per day-of-period
  * offset, showing the mix of logged flow levels that day. The stack is a sequential
- * rose ramp (light -> dark = spotting -> very heavy) since flow is ordered data, not
+ * ink ramp (light -> dark = spotting -> very heavy) since flow is ordered data, not
  * unrelated categories; a 2px gap (stroke matching the card background) separates
  * segments.
  */
@@ -88,16 +88,16 @@ export function FlowByPeriodDayChart({ flowPattern }: FlowByPeriodDayChartProps)
     const datum = payload[0]?.payload as FlowByDayDatum | undefined;
     if (!datum) return null;
     return (
-      <div className="grid min-w-40 gap-1.5 rounded-lg border border-border/50 bg-background px-2.5 py-1.5 text-xs shadow-xl">
+      <div className="grid min-w-40 gap-1.5 rounded-lg border border-border bg-popover px-2.5 py-1.5 text-caption text-popover-foreground shadow-float">
         <div className="font-medium text-foreground">
           Day {datum.periodDay} — {datum.loggedDayCount} day{datum.loggedDayCount === 1 ? "" : "s"} logged
         </div>
         <div className="grid gap-1">
           {FLOW_LEVELS.map((level) => (
             <div key={level} className="flex items-center gap-2">
-              <span aria-hidden="true" className="h-2.5 w-2.5 shrink-0 rounded-[2px]" style={{ background: `var(--color-${level})` }} />
+              <span aria-hidden="true" className="size-2.5 shrink-0 rounded-sm" style={{ background: `var(--color-${level})` }} />
               <span className="flex-1 text-muted-foreground">{FLOW_LABEL[level]}</span>
-              <span className="font-mono font-medium text-foreground tabular-nums">{datum.counts[level]}</span>
+              <span className="font-medium text-foreground tabular-nums">{datum.counts[level]}</span>
             </div>
           ))}
         </div>
@@ -119,7 +119,7 @@ export function FlowByPeriodDayChart({ flowPattern }: FlowByPeriodDayChartProps)
       emptyMessage="Flow pattern will appear here once you've logged a flow level on a period day."
     >
       <div style={{ minWidth: `${width}px` }}>
-        <ChartContainer config={chartConfig} className="aspect-auto h-56 w-full">
+        <ChartContainer config={chartConfig} className="aspect-auto h-56 w-full text-caption">
           <BarChart data={data} margin={{ top: 8, right: 8, bottom: 4, left: 4 }}>
             <CartesianGrid vertical={false} />
             <XAxis dataKey="label" tickLine={false} axisLine={false} />

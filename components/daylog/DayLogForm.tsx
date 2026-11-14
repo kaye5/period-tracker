@@ -26,7 +26,6 @@ import { Switch } from "@/components/ui/switch";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   AlertDialog,
@@ -185,18 +184,18 @@ export function DayLogForm({ date, today, initialDayLog, settings, onClose }: Da
   }
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-section">
       <header className="flex flex-col gap-1">
         {onClose ? null : (
-          <Link href="/" className="text-sm text-muted-foreground hover:text-foreground">
+          <Link href="/" className="text-label text-muted-foreground hover:text-foreground">
             ‹ Back to calendar
           </Link>
         )}
-        <h1 className="text-xl font-semibold text-foreground">
+        <h1 className="text-title text-foreground">
           {monthName(month)} {day}, {year}
         </h1>
         {isBackEntry ? (
-          <p className="text-sm text-muted-foreground">
+          <p className="text-label font-normal text-muted-foreground">
             You&apos;re logging a day in the past — that&apos;s recorded as a back-entry.
           </p>
         ) : null}
@@ -208,17 +207,16 @@ export function DayLogForm({ date, today, initialDayLog, settings, onClose }: Da
         savedJustNow={justSavedNothing}
       />
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Bleeding</CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-3">
+      <section aria-labelledby="daylog-bleeding" className="flex flex-col gap-stack">
+          <h2 id="daylog-bleeding" className="text-heading text-foreground">
+            Bleeding
+          </h2>
           <Button
             type="button"
-            variant={state.bleeding === "menstrual" ? "default" : "secondary"}
+            variant={state.bleeding === "menstrual" ? "default" : "outline"}
             aria-pressed={state.bleeding === "menstrual"}
             onClick={() => setPeriodToday(state.bleeding !== "menstrual")}
-            className="h-14 w-full text-base font-semibold"
+            className="h-quicklog w-full rounded-full text-body font-semibold"
           >
             {state.bleeding === "menstrual" ? <Check data-icon="inline-start" aria-hidden="true" /> : null}
             {state.bleeding === "menstrual" ? "Period day — recorded" : "I had my period this day"}
@@ -241,7 +239,7 @@ export function DayLogForm({ date, today, initialDayLog, settings, onClose }: Da
                   value={state.periodBoundary}
                   onChange={(v) => patch("periodBoundary", v)}
                 />
-                <p className="text-xs text-muted-foreground">
+                <p className="text-caption text-muted-foreground">
                   Tap “Last day” on the final day you bleed to close the period and record
                   its length — otherwise it keeps showing as ongoing.
                 </p>
@@ -257,19 +255,93 @@ export function DayLogForm({ date, today, initialDayLog, settings, onClose }: Da
               onClick={() => setSpottingOnly(state.bleeding !== "spotting")}
               className={
                 state.bleeding === "spotting"
-                  ? "h-11 self-start rounded-full border-primary bg-primary/50 px-4 text-sm font-medium text-foreground hover:bg-primary/50"
-                  : "h-11 self-start rounded-full px-4 text-sm font-medium text-muted-foreground"
+                  ? "h-chip self-start rounded-full border-2 border-primary px-4 text-label text-foreground"
+                  : "h-chip self-start rounded-full px-4 text-label text-muted-foreground"
               }
             >
               {state.bleeding === "spotting" ? <Check data-icon="inline-start" aria-hidden="true" /> : null}
               Just spotting — not a full period
             </Button>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-caption text-muted-foreground">
               Spotting is tracked separately from a period and never starts a new cycle.
             </p>
           </div>
-        </CardContent>
-      </Card>
+      </section>
+
+      <div className="border-t border-border pt-section">
+        <ChipGroup<MoodId>
+          mode="multi"
+          legend="Mood"
+          options={MOOD_OPTIONS}
+          value={state.mood}
+          onChange={(v) => patch("mood", v)}
+        />
+      </div>
+
+      <section aria-labelledby="daylog-symptoms" className="flex flex-col gap-section border-t border-border pt-section">
+        <h2 id="daylog-symptoms" className="text-heading text-foreground">
+          Symptoms
+        </h2>
+        <SymptomGroupChips
+          legend="Physical"
+          ids={groups.physical}
+          selected={state.symptoms}
+          onChange={(next) => patch("symptoms", next)}
+        />
+        <SymptomGroupChips
+          legend="Emotional"
+          ids={groups.emotional}
+          selected={state.symptoms}
+          onChange={(next) => patch("symptoms", next)}
+        />
+        {groups.tierC.length > 0 ? (
+          <SymptomGroupChips
+            legend="Other"
+            ids={groups.tierC}
+            selected={state.symptoms}
+            onChange={(next) => patch("symptoms", next)}
+          />
+        ) : null}
+      </section>
+
+      <Expander title="Pain">
+        <ChipGroup
+          mode="single"
+          legend="Pain severity"
+          options={PAIN_SEVERITY_OPTIONS}
+          clearable={false}
+          value={state.painSeverity}
+          onChange={(v) => patch("painSeverity", v ?? "none")}
+        />
+        {state.painSeverity !== "none" ? (
+          <>
+            <ChipGroup<PainSite>
+              mode="multi"
+              legend="Where"
+              options={PAIN_SITE_OPTIONS}
+              value={state.painSites}
+              onChange={(v) => patch("painSites", v)}
+            />
+            <ChipGroup<Interference>
+              mode="multi"
+              legend="Got in the way of"
+              options={INTERFERENCE_OPTIONS}
+              value={state.interferedWith}
+              onChange={(v) => patch("interferedWith", v)}
+            />
+            <Field orientation="horizontal" className="justify-between">
+              <FieldLabel htmlFor="painkiller-no-help" className="font-normal">
+                Painkillers didn&apos;t help
+              </FieldLabel>
+              <Switch
+                id="painkiller-no-help"
+                checked={state.painkillerDidNotHelp}
+                onCheckedChange={(v) => patch("painkillerDidNotHelp", v)}
+              />
+            </Field>
+          </>
+        ) : null}
+      </Expander>
 
       <Expander title="Product & protection">
         <ChipGroup
@@ -336,81 +408,9 @@ export function DayLogForm({ date, today, initialDayLog, settings, onClose }: Da
         />
       </Expander>
 
-      <Expander title="Pain">
-        <ChipGroup
-          mode="single"
-          legend="Pain severity"
-          options={PAIN_SEVERITY_OPTIONS}
-          clearable={false}
-          value={state.painSeverity}
-          onChange={(v) => patch("painSeverity", v ?? "none")}
-        />
-        {state.painSeverity !== "none" ? (
-          <>
-            <ChipGroup<PainSite>
-              mode="multi"
-              legend="Where"
-              options={PAIN_SITE_OPTIONS}
-              value={state.painSites}
-              onChange={(v) => patch("painSites", v)}
-            />
-            <ChipGroup<Interference>
-              mode="multi"
-              legend="Got in the way of"
-              options={INTERFERENCE_OPTIONS}
-              value={state.interferedWith}
-              onChange={(v) => patch("interferedWith", v)}
-            />
-            <Field orientation="horizontal" className="justify-between">
-              <FieldLabel htmlFor="painkiller-no-help" className="font-normal">
-                Painkillers didn&apos;t help
-              </FieldLabel>
-              <Switch
-                id="painkiller-no-help"
-                checked={state.painkillerDidNotHelp}
-                onCheckedChange={(v) => patch("painkillerDidNotHelp", v)}
-              />
-            </Field>
-          </>
-        ) : null}
-      </Expander>
-
-      <Expander title="Physical symptoms">
-        <SymptomGroupChips
-          legend="Physical"
-          ids={groups.physical}
-          selected={state.symptoms}
-          onChange={(next) => patch("symptoms", next)}
-        />
-        <SymptomGroupChips
-          legend="Emotional"
-          ids={groups.emotional}
-          selected={state.symptoms}
-          onChange={(next) => patch("symptoms", next)}
-        />
-        {groups.tierC.length > 0 ? (
-          <SymptomGroupChips
-            legend="Other"
-            ids={groups.tierC}
-            selected={state.symptoms}
-            onChange={(next) => patch("symptoms", next)}
-          />
-        ) : null}
-      </Expander>
-
-      <Expander title="Mood">
-        <ChipGroup<MoodId>
-          mode="multi"
-          legend="Mood"
-          options={MOOD_OPTIONS}
-          value={state.mood}
-          onChange={(v) => patch("mood", v)}
-        />
-      </Expander>
-
       {settings.fertilityEnabled ? (
         <Expander title="Reproductive health observations">
-          <p className="text-xs text-muted-foreground">{FERTILITY_DISCLAIMER}</p>
+          <p className="text-caption text-muted-foreground">{FERTILITY_DISCLAIMER}</p>
           <ChipGroup
             mode="single"
             legend="Cervical mucus"
@@ -472,7 +472,7 @@ export function DayLogForm({ date, today, initialDayLog, settings, onClose }: Da
         </Alert>
       ) : null}
 
-      <div className="sticky bottom-0 -mx-4 flex items-center justify-between gap-3 border-t border-border bg-background/95 p-4 backdrop-blur">
+      <div className="sticky bottom-0 -mx-gutter flex items-center justify-between gap-3 border-t border-border bg-popover/95 px-gutter pt-stack pb-[max(var(--spacing-stack),env(safe-area-inset-bottom))] backdrop-blur">
         {hasExistingLog ? (
           <AlertDialog open={confirmingClear} onOpenChange={setConfirmingClear}>
             <AlertDialogTrigger render={<Button type="button" variant="ghost" />}>
@@ -494,7 +494,7 @@ export function DayLogForm({ date, today, initialDayLog, settings, onClose }: Da
         ) : (
           <span />
         )}
-        <Button type="button" variant="default" onClick={handleSave} disabled={saving}>
+        <Button type="button" variant="default" className="rounded-full px-6" onClick={handleSave} disabled={saving}>
           {saving ? (
             "Saving…"
           ) : justSaved ? (

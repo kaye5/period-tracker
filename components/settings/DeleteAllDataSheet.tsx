@@ -90,20 +90,20 @@ export function DeleteAllDataSheet({
         if (!next && !deleting) onClose();
       }}
     >
-      <AlertDialogContent>
+      <AlertDialogContent className="rounded-stage p-card">
         <AlertDialogHeader>
           <AlertTriangleIcon className="mb-1 size-6 text-destructive" aria-hidden="true" />
-          <AlertDialogTitle>Permanently delete everything</AlertDialogTitle>
+          <AlertDialogTitle className="text-heading">Permanently delete everything</AlertDialogTitle>
           <AlertDialogDescription render={<div className="text-left" />}>
-            <p className="mb-2 text-sm text-foreground">
+            <p className="mb-2 text-label font-normal text-popover-foreground">
               This permanently deletes, right now, with no way to get it back:
             </p>
-            <ul className="mb-3 list-disc pl-5 text-sm text-foreground">
+            <ul className="mb-3 list-disc pl-5 text-label font-normal text-popover-foreground tabular-nums">
               {scope.map((line) => (
                 <li key={line}>{line}</li>
               ))}
             </ul>
-            <p className="text-sm font-medium text-destructive">
+            <p className="text-label text-destructive">
               This cannot be undone. There is no trash, no backup, and no recovery inside this
               app.
             </p>
@@ -111,29 +111,32 @@ export function DeleteAllDataSheet({
         </AlertDialogHeader>
 
         <Field>
-          <FieldLabel htmlFor="delete-confirm-input">
+          <FieldLabel htmlFor="delete-confirm-input" className="text-label">
             Type {DELETE_CONFIRMATION_PHRASE} to confirm
           </FieldLabel>
           <Input
             id="delete-confirm-input"
             type="text"
             autoComplete="off"
-            className="h-11"
+            className="h-chip rounded-xl px-3 text-body md:text-body"
             value={typed}
             onChange={(e) => setTyped(e.target.value)}
           />
         </Field>
 
         {error ? (
-          <p role="alert" className="text-sm text-destructive">
+          <p role="alert" className="text-label font-normal text-destructive">
             {error}
           </p>
         ) : null}
 
-        <AlertDialogFooter>
-          <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+        <AlertDialogFooter className="-mx-card -mb-card rounded-b-stage border-border p-card">
+          <AlertDialogCancel className="rounded-full" disabled={deleting}>
+            Cancel
+          </AlertDialogCancel>
           <AlertDialogAction
             variant="destructive"
+            className="rounded-full"
             disabled={!confirmed || deleting}
             onClick={handleDelete}
           >

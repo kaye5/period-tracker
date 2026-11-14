@@ -11,6 +11,9 @@ const Toaster = ({ ...props }: ToasterProps) => {
     <Sonner
       theme="system"
       className="toaster group"
+      // Sit above the bottom nav so a toast's Undo never covers (or hides behind) it.
+      offset={{ bottom: "calc(var(--nav-h) + 1rem)" }}
+      mobileOffset={{ bottom: "calc(var(--nav-h) + 0.75rem)" }}
       icons={{
         success: (
           <CircleCheckIcon className="size-4" />

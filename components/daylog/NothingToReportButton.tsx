@@ -20,10 +20,10 @@ export function NothingToReportButton({ onTap, pending, savedJustNow }: NothingT
   return (
     <Button
       type="button"
-      variant="secondary"
+      variant="outline"
       onClick={onTap}
       disabled={pending}
-      className="h-14 w-full border-2 text-base"
+      className="h-quicklog w-full rounded-full text-body"
     >
       {pending ? (
         "Saving…"

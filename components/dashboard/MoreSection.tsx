@@ -13,7 +13,6 @@ import { ChevronDown } from "lucide-react";
 import type { CivilDate } from "@/lib/date/civil";
 import type { CycleStatistics, CyclePhase, HitRateSummary, PerformanceSummary } from "@/lib/engine";
 import type { FertilityEstimate, HealthMessage, Insight } from "@/lib/domain/types";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 import { symptomLabel } from "@/lib/copy/insights";
@@ -64,7 +63,7 @@ export function MoreSection({
     <Collapsible open={expanded} onOpenChange={setExpanded}>
       <CollapsibleTrigger
         aria-expanded={expanded}
-        render={<Button variant="secondary" className="group w-full" />}
+        render={<Button variant="outline" className="group h-chip w-full rounded-full" />}
       >
         <span className="flex-1 text-center">{expanded ? SHOW_LESS_LABEL : SHOW_MORE_LABEL}</span>
         <ChevronDown
@@ -74,7 +73,7 @@ export function MoreSection({
         />
       </CollapsibleTrigger>
 
-      <CollapsibleContent className="mt-3 flex flex-col gap-3">
+      <CollapsibleContent className="mt-stack flex flex-col gap-stack">
         <PeriodDurationCard stats={stats} />
         <CycleVariationCard stats={stats} />
         {stats.heavyFlowDayCount > 0 ? <FlowCard stats={stats} /> : null}
@@ -82,7 +81,7 @@ export function MoreSection({
           <SymptomsCard stats={stats} />
         ) : null}
         {secondaryInsights.length > 0 ? (
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-stack">
             {secondaryInsights.map((insight) => (
               <PrimaryCard
                 key={insight.id}
@@ -97,8 +96,8 @@ export function MoreSection({
         {fertility ? <FertilityCard fertility={fertility} phase={phase} /> : null}
         <PerformanceCard performance={performance} />
         {nonUrgentHealthMessages.length > 0 ? (
-          <div className="flex flex-col gap-3">
-            <h2 className="text-sm font-semibold text-foreground">
+          <div className="flex flex-col gap-stack">
+            <h2 className="mt-2 text-label text-foreground">
               {SECTION_HEADINGS.healthNotes}
             </h2>
             {nonUrgentHealthMessages.map((message) => (
@@ -114,94 +113,79 @@ export function MoreSection({
 function PeriodDurationCard({ stats }: { stats: CycleStatistics }) {
   const { periodDuration } = stats;
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{SECTION_HEADINGS.periodDuration}</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <p className="text-sm text-muted-foreground">
-          {periodDuration !== null
-            ? periodDurationSummary(periodDuration.low, periodDuration.high, periodDuration.n)
-            : EMPTY_STATES.noCompletedCycles}
-        </p>
-      </CardContent>
-    </Card>
+    <InfoCard title={SECTION_HEADINGS.periodDuration}>
+      <p className="text-label font-normal text-muted-foreground text-pretty">
+        {periodDuration !== null
+          ? periodDurationSummary(periodDuration.low, periodDuration.high, periodDuration.n)
+          : EMPTY_STATES.noCompletedCycles}
+      </p>
+    </InfoCard>
   );
 }
 
 function CycleVariationCard({ stats }: { stats: CycleStatistics }) {
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{SECTION_HEADINGS.cycleVariation}</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <p className="text-sm text-muted-foreground">
-          {stats.variabilityHeadline ??
-            cycleVariationNotYet(stats.completedCycleCount, MIN_CYCLES_FOR_VARIABILITY)}
-        </p>
-      </CardContent>
-    </Card>
+    <InfoCard title={SECTION_HEADINGS.cycleVariation}>
+      <p className="text-label font-normal text-muted-foreground text-pretty">
+        {stats.variabilityHeadline ??
+          cycleVariationNotYet(stats.completedCycleCount, MIN_CYCLES_FOR_VARIABILITY)}
+      </p>
+    </InfoCard>
   );
 }
 
 function FlowCard({ stats }: { stats: CycleStatistics }) {
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{SECTION_HEADINGS.flowPattern}</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <dl className="text-sm text-foreground">
-          <dt className="text-muted-foreground">Heavy-or-higher flow days recorded</dt>
-          <dd className="font-medium">{stats.heavyFlowDayCount}</dd>
-        </dl>
-      </CardContent>
-    </Card>
+    <InfoCard title={SECTION_HEADINGS.flowPattern}>
+      <dl className="flex flex-col gap-1">
+        <dt className="text-label font-normal text-muted-foreground">Heavy-or-higher flow days recorded</dt>
+        <dd className="text-heading text-card-foreground tabular-nums">{stats.heavyFlowDayCount}</dd>
+      </dl>
+    </InfoCard>
   );
 }
 
 function SymptomsCard({ stats }: { stats: CycleStatistics }) {
   const top = selectTopSymptoms(stats.symptomFrequency);
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{SECTION_HEADINGS.symptoms}</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <ul className="flex flex-col gap-1">
-          {top.map((row) => (
-            <li key={row.symptom} className="text-sm text-muted-foreground">
-              {symptomFrequencySummary(symptomLabel(row.symptom), row.occurrences, row.knownDays)}
-            </li>
-          ))}
-        </ul>
-      </CardContent>
-    </Card>
+    <InfoCard title={SECTION_HEADINGS.symptoms}>
+      <ul className="flex flex-col gap-1">
+        {top.map((row) => (
+          <li key={row.symptom} className="text-label font-normal text-muted-foreground">
+            {symptomFrequencySummary(symptomLabel(row.symptom), row.occurrences, row.knownDays)}
+          </li>
+        ))}
+      </ul>
+    </InfoCard>
   );
 }
 
 function PerformanceCard({ performance }: { performance: PerformanceSummary }) {
   const hitRate: HitRateSummary | null = performance.windowHitRate;
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{SECTION_HEADINGS.performance}</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="flex flex-col gap-1 text-sm text-muted-foreground">
-          {performance.lastSignedErrorDays !== null ? (
-            <p>{lastPredictionError(performance.lastSignedErrorDays)}</p>
-          ) : null}
-          {performance.rollingMedianAbsoluteErrorDays !== null ? (
-            <p>{typicalRecentMiss(performance.rollingMedianAbsoluteErrorDays)}</p>
-          ) : null}
-          {hitRate !== null ? <p>{windowHitRateSummary(hitRate.hits, hitRate.n)}</p> : null}
-          {performance.lastSignedErrorDays === null && hitRate === null ? (
-            <p>{NOT_ENOUGH_RESOLVED_PREDICTIONS}</p>
-          ) : null}
-        </div>
-      </CardContent>
-    </Card>
+    <InfoCard title={SECTION_HEADINGS.performance}>
+      <div className="flex flex-col gap-1 text-label font-normal text-muted-foreground">
+        {performance.lastSignedErrorDays !== null ? (
+          <p>{lastPredictionError(performance.lastSignedErrorDays)}</p>
+        ) : null}
+        {performance.rollingMedianAbsoluteErrorDays !== null ? (
+          <p>{typicalRecentMiss(performance.rollingMedianAbsoluteErrorDays)}</p>
+        ) : null}
+        {hitRate !== null ? <p>{windowHitRateSummary(hitRate.hits, hitRate.n)}</p> : null}
+        {performance.lastSignedErrorDays === null && hitRate === null ? (
+          <p>{NOT_ENOUGH_RESOLVED_PREDICTIONS}</p>
+        ) : null}
+      </div>
+    </InfoCard>
+  );
+}
+
+/** One "read more" panel: the same stage surface and heading as an insight card. */
+function InfoCard({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <article className="flex flex-col gap-2 stage p-card">
+      <h3 className="text-heading text-card-foreground text-balance">{title}</h3>
+      {children}
+    </article>
   );
 }

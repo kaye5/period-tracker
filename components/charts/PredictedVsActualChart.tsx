@@ -22,6 +22,9 @@ interface PredictedVsActualDatum {
 
 const chartConfig = {
   signedErrorDays: { label: "Actual vs. predicted" },
+  inside: { label: "Inside the predicted window", color: "var(--chart-1)" },
+  outside: { label: "Outside the predicted window", color: "var(--chart-2)" },
+  axis: { label: "On time", color: "var(--chart-5)" },
 } satisfies ChartConfig;
 
 const BAR_SLOT_WIDTH = 48;
@@ -29,12 +32,12 @@ const MIN_WIDTH = 360;
 
 /** Positive (late) bars get rounded top corners; negative (early) bars stay square —
  * "the tip of the bar", the end farthest from the zero line, is the rounded one. Colour
- * encodes whether the actual start fell inside the predicted window (rose) or outside it
- * (blue) — never the only signal, since the tooltip and data table both spell it out too. */
+ * encodes whether the actual start fell inside the predicted window (ink) or outside it
+ * (sky) — never the only signal, since the tooltip and data table both spell it out too. */
 function PredictedVsActualBarShape(props: BarShapeProps) {
   const { x, y, width, height, payload } = props;
   const datum = payload as PredictedVsActualDatum;
-  const fill = datum.insideWindow ? "var(--chart-1)" : "var(--chart-2)";
+  const fill = datum.insideWindow ? "var(--color-inside)" : "var(--color-outside)";
   const positive = datum.signedErrorDays >= 0;
   return <Rectangle x={x} y={y} width={width} height={height} radius={positive ? [4, 4, 0, 0] : 0} fill={fill} />;
 }
@@ -76,14 +79,14 @@ export function PredictedVsActualChart({ points }: PredictedVsActualChartProps) 
         <Legend
           label="Predicted vs. actual chart legend"
           items={[
-            { swatchClassName: "bg-[var(--chart-1)]", label: "Inside the predicted window" },
-            { swatchClassName: "bg-[var(--chart-2)]", label: "Outside the predicted window" },
+            { swatchClassName: "bg-chart-1", label: "Inside the predicted window" },
+            { swatchClassName: "bg-chart-2", label: "Outside the predicted window" },
           ]}
         />
       }
     >
       <div style={{ minWidth: `${width}px` }}>
-        <ChartContainer config={chartConfig} className="aspect-auto h-56 w-full">
+        <ChartContainer config={chartConfig} className="aspect-auto h-56 w-full text-caption">
           <BarChart data={data} margin={{ top: 8, right: 8, bottom: 4, left: 12 }}>
             <CartesianGrid vertical={false} />
             <XAxis dataKey="label" tickLine={false} axisLine={false} />
@@ -92,10 +95,10 @@ export function PredictedVsActualChart({ points }: PredictedVsActualChartProps) 
                 value="Days early ↔ late"
                 angle={-90}
                 position="insideLeft"
-                style={{ fill: "var(--muted-foreground)", fontSize: 11, textAnchor: "middle" }}
+                style={{ fill: "var(--color-axis)", fontSize: 13, textAnchor: "middle" }}
               />
             </YAxis>
-            <ReferenceLine y={0} stroke="var(--muted-foreground)" />
+            <ReferenceLine y={0} stroke="var(--color-axis)" />
             <ChartTooltip
               cursor={false}
               content={
@@ -108,7 +111,7 @@ export function PredictedVsActualChart({ points }: PredictedVsActualChartProps) 
                     const d = item.payload as PredictedVsActualDatum;
                     return (
                       <div className="flex w-full flex-col gap-0.5">
-                        <span className="font-mono font-medium text-foreground tabular-nums">{formatSignedDays(d.signedErrorDays)}</span>
+                        <span className="font-medium text-foreground tabular-nums">{formatSignedDays(d.signedErrorDays)}</span>
                         <span className="text-muted-foreground">
                           {d.insideWindow ? "Inside the predicted window" : "Outside the predicted window"}
                         </span>

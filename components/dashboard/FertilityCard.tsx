@@ -1,4 +1,3 @@
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import type { FertilityEstimate } from "@/lib/domain/types";
 import type { CyclePhase } from "@/lib/engine";
 import { PHASE_DASHBOARD_NOTE, PHASE_LABELS } from "@/lib/copy/general";
@@ -27,38 +26,32 @@ export interface FertilityCardProps {
  */
 export function FertilityCard({ fertility, phase }: FertilityCardProps) {
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{FERTILE_WINDOW_HEADLINE}</CardTitle>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-3">
-        <dl className="grid gap-2 text-sm text-foreground">
-          <div>
-            <dt className="text-muted-foreground">Fertile window</dt>
-            <dd className="font-medium">
-              {formatDateRange(fertility.fertileLow, fertility.fertileHigh)}
+    <article className="flex flex-col gap-stack stage p-card">
+      <h3 className="text-heading text-card-foreground text-balance">{FERTILE_WINDOW_HEADLINE}</h3>
+      <dl className="grid gap-stack">
+        <div className="flex flex-col gap-0.5">
+          <dt className="text-label font-normal text-muted-foreground">Fertile window</dt>
+          <dd className="text-body font-semibold text-card-foreground tabular-nums">
+            {formatDateRange(fertility.fertileLow, fertility.fertileHigh)}
+          </dd>
+        </div>
+        <div className="flex flex-col gap-0.5">
+          <dt className="text-label font-normal text-muted-foreground">Estimated ovulation</dt>
+          <dd className="text-body font-semibold text-card-foreground tabular-nums">
+            {formatDateRange(fertility.ovulationLow, fertility.ovulationHigh)}
+          </dd>
+        </div>
+        {phase !== null ? (
+          <div className="flex flex-col gap-0.5">
+            <dt className="text-label font-normal text-muted-foreground">Today</dt>
+            <dd className="text-body text-card-foreground">
+              {PHASE_LABELS[phase]} — {PHASE_DASHBOARD_NOTE[phase]}
             </dd>
           </div>
-          <div>
-            <dt className="text-muted-foreground">Estimated ovulation</dt>
-            <dd className="font-medium">
-              {formatDateRange(fertility.ovulationLow, fertility.ovulationHigh)}
-            </dd>
-          </div>
-          {phase !== null ? (
-            <div>
-              <dt className="text-muted-foreground">Today</dt>
-              <dd className="font-medium">
-                {PHASE_LABELS[phase]} — {PHASE_DASHBOARD_NOTE[phase]}
-              </dd>
-            </div>
-          ) : null}
-        </dl>
-        <p className="text-sm text-muted-foreground">{fertility.confidenceNote}</p>
-        <p className="rounded-lg border border-border bg-muted p-3 text-xs text-muted-foreground">
-          {fertility.disclaimer}
-        </p>
-      </CardContent>
-    </Card>
+        ) : null}
+      </dl>
+      <p className="text-label font-normal text-muted-foreground text-pretty">{fertility.confidenceNote}</p>
+      <p className="rounded-xl bg-muted p-3 text-caption text-muted-foreground text-pretty">{fertility.disclaimer}</p>
+    </article>
   );
 }

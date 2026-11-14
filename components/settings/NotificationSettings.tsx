@@ -5,8 +5,10 @@
  * brief: "notification controls per PRD §14 including a live preview of private wording
  * … versus detailed wording, with private as the default").
  */
+import { Check } from "lucide-react";
 import type { Settings } from "@/lib/domain/types";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
+import { Card, CardContent } from "@/components/ui/card";
 import { Field, FieldContent, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -26,20 +28,20 @@ export function NotificationSettings({
   const { notifications } = settings;
 
   return (
+    // The "Notifications" heading is the Settings section heading this card sits under.
     <Card>
-      <CardHeader>
-        <CardTitle>Notifications</CardTitle>
-      </CardHeader>
       <CardContent>
-        <FieldGroup>
-          <Field orientation="horizontal" className="rounded-lg border border-border bg-muted/40 p-3">
+        <FieldGroup className="gap-0 divide-y divide-border">
+          <Field orientation="horizontal" className="mb-2 rounded-xl bg-muted p-4">
             <FieldContent>
-              <FieldLabel htmlFor="notif-private-wording">Private wording</FieldLabel>
+              <FieldLabel htmlFor="notif-private-wording" className="text-body font-normal text-card-foreground">
+                Private wording
+              </FieldLabel>
               <FieldDescription>
                 Notifications say only &quot;Reminder&quot; on your lock screen instead of what
                 they&apos;re about.
               </FieldDescription>
-              <div className="mt-3 grid grid-cols-1 gap-2 text-xs sm:grid-cols-2">
+              <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
                 <PreviewCard mode="Private" text="Reminder" active={notifications.privateWording} />
                 <PreviewCard
                   mode="Detailed"
@@ -56,9 +58,11 @@ export function NotificationSettings({
           </Field>
 
           {NOTIFICATION_TOGGLES.map(({ key, kind, label }) => (
-            <Field orientation="horizontal" key={key}>
+            <Field orientation="horizontal" key={key} className="min-h-chip py-3 last:pb-0">
               <FieldContent>
-                <FieldLabel htmlFor={`notif-${key}`}>{label}</FieldLabel>
+                <FieldLabel htmlFor={`notif-${key}`} className="text-body font-normal text-card-foreground">
+                  {label}
+                </FieldLabel>
                 <FieldDescription>{notificationPreviewText(kind, notifications.privateWording)}</FieldDescription>
               </FieldContent>
               <Switch
@@ -76,14 +80,18 @@ export function NotificationSettings({
 
 function PreviewCard({ mode, text, active }: { mode: string; text: string; active: boolean }) {
   return (
+    // Active preview: ink border + a check glyph, so the state never rests on colour.
     <div
-      className={[
-        "rounded-lg border p-2",
-        active ? "border-primary bg-card" : "border-border bg-card opacity-60",
-      ].join(" ")}
+      className={cn(
+        "rounded-xl border bg-card px-3 py-2",
+        active ? "border-primary" : "border-border opacity-60",
+      )}
     >
-      <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">{mode}</p>
-      <p className="text-foreground">{text}</p>
+      <p className="flex items-center gap-1 text-caption font-medium text-muted-foreground">
+        {active ? <Check aria-hidden className="size-3.5 text-foreground" /> : null}
+        {mode}
+      </p>
+      <p className="text-label font-normal text-card-foreground">{text}</p>
     </div>
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { DownloadIcon, PrinterIcon } from "lucide-react";
 import type { CivilDate } from "@/lib/date/civil";
 import type { BleedingEpisode, Cycle, DayLog, Profile } from "@/lib/domain/types";
 import { Button } from "@/components/ui/button";
@@ -48,30 +49,34 @@ export function ReportScreen({ dayLogs, cycles, episodes, profile, today }: Repo
   const csvUrl = range ? buildExportQuery(range, effSelection, "csv") : null;
 
   return (
-    <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-6">
-      <div className="no-print flex flex-col gap-6">
-        <h1 className="text-2xl font-semibold text-foreground">Report</h1>
+    <main className="mx-auto flex w-full max-w-3xl flex-col gap-section px-gutter py-section">
+      <div className="no-print flex flex-col gap-section">
+        <h1 className="text-title text-foreground">Report</h1>
 
-        <RangePicker
-          option={rangeOption}
-          onOptionChange={setRangeOption}
-          custom={custom}
-          onCustomChange={setCustom}
-          error={error}
-        />
+        <div className="flex flex-col gap-section stage p-card">
+          <RangePicker
+            option={rangeOption}
+            onOptionChange={setRangeOption}
+            custom={custom}
+            onCustomChange={setCustom}
+            error={error}
+          />
 
-        <SelectionControls
-          selection={selection}
-          onChange={setSelection}
-          fertilityEnabled={profile.settings.fertilityEnabled}
-        />
+          <SelectionControls
+            selection={selection}
+            onChange={setSelection}
+            fertilityEnabled={profile.settings.fertilityEnabled}
+          />
+        </div>
 
         <div className="flex flex-wrap gap-2">
-          <Button variant="default" onClick={() => window.print()} disabled={!reportData}>
+          <Button variant="default" className="rounded-full px-6" onClick={() => window.print()} disabled={!reportData}>
+            <PrinterIcon aria-hidden />
             Print / Save as PDF
           </Button>
           {csvUrl ? (
-            <Button variant="outline" render={<a href={csvUrl} />}>
+            <Button variant="outline" className="rounded-full px-6" nativeButton={false} render={<a href={csvUrl} />}>
+              <DownloadIcon aria-hidden />
               Download CSV
             </Button>
           ) : null}

@@ -23,7 +23,7 @@ interface PeriodDurationDatum {
 }
 
 const chartConfig = {
-  durationDays: { label: "Period duration" },
+  durationDays: { label: "Period duration", color: "var(--chart-1)" },
 } satisfies ChartConfig;
 
 const BAR_SLOT_WIDTH = 56;
@@ -39,14 +39,14 @@ function PeriodDurationBarShape(props: BarShapeProps) {
       width={width}
       height={height}
       radius={[4, 4, 0, 0]}
-      fill="var(--chart-1)"
+      fill="var(--color-durationDays)"
       fillOpacity={0.45}
-      stroke="var(--chart-1)"
+      stroke="var(--color-durationDays)"
       strokeDasharray="4 2"
       strokeWidth={1.5}
     />
   ) : (
-    <Rectangle x={x} y={y} width={width} height={height} radius={[4, 4, 0, 0]} fill="var(--chart-1)" fillOpacity={1} />
+    <Rectangle x={x} y={y} width={width} height={height} radius={[4, 4, 0, 0]} fill="var(--color-durationDays)" fillOpacity={1} />
   );
 }
 
@@ -89,9 +89,9 @@ export function PeriodDurationChart({ episodes, periodDuration }: PeriodDuration
         <Legend
           label="Period duration chart legend"
           items={[
-            { swatchClassName: "bg-[var(--chart-1)]", label: "Explicit start and end logged" },
+            { swatchClassName: "bg-chart-1", label: "Explicit start and end logged" },
             {
-              icon: <span aria-hidden="true" className="inline-block h-2.5 w-2.5 rounded-[2px] border-2 border-dashed border-[var(--chart-1)] bg-[var(--chart-1)]/45" />,
+              icon: <span aria-hidden="true" className="inline-block size-2.5 rounded-sm border-2 border-dashed border-chart-1 bg-chart-1/45" />,
               label: "End date not explicitly logged",
               description: "Duration is estimated from the last logged bleeding day",
             },
@@ -100,7 +100,7 @@ export function PeriodDurationChart({ episodes, periodDuration }: PeriodDuration
       }
     >
       <div style={{ minWidth: `${width}px` }}>
-        <ChartContainer config={chartConfig} className="aspect-auto h-56 w-full">
+        <ChartContainer config={chartConfig} className="aspect-auto h-56 w-full text-caption">
           <BarChart data={data} margin={{ top: 8, right: 8, bottom: 4, left: 4 }}>
             <CartesianGrid vertical={false} />
             <XAxis dataKey="label" tickLine={false} axisLine={false} />
@@ -109,14 +109,14 @@ export function PeriodDurationChart({ episodes, periodDuration }: PeriodDuration
               <ReferenceArea
                 y1={periodDuration.low}
                 y2={periodDuration.high}
-                fill="var(--chart-1)"
+                fill="var(--color-durationDays)"
                 fillOpacity={0.08}
                 strokeOpacity={0}
                 ifOverflow="extendDomain"
               />
             ) : null}
             {periodDuration ? (
-              <ReferenceLine y={periodDuration.center} stroke="var(--chart-1)" strokeDasharray="4 4" ifOverflow="extendDomain" />
+              <ReferenceLine y={periodDuration.center} stroke="var(--color-durationDays)" strokeDasharray="4 4" ifOverflow="extendDomain" />
             ) : null}
             <ChartTooltip
               cursor={false}
@@ -130,7 +130,7 @@ export function PeriodDurationChart({ episodes, periodDuration }: PeriodDuration
                     const d = item.payload as PeriodDurationDatum;
                     return (
                       <div className="flex w-full flex-col gap-0.5">
-                        <span className="font-mono font-medium text-foreground tabular-nums">
+                        <span className="font-medium text-foreground tabular-nums">
                           {d.durationDays} day{d.durationDays === 1 ? "" : "s"}
                         </span>
                         {d.endInferred ? <span className="text-muted-foreground">End date inferred</span> : null}

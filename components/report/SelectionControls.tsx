@@ -21,7 +21,7 @@ export interface SelectionControlsProps {
  */
 export function SelectionControls({ selection, onChange, fertilityEnabled }: SelectionControlsProps) {
   return (
-    <FieldSet className="gap-3">
+    <FieldSet className="gap-stack">
       <FieldLegend variant="label">What to include</FieldLegend>
 
       <Field orientation="horizontal">

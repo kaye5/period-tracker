@@ -8,8 +8,8 @@ export interface PrintableReportProps {
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="report-section mb-6 break-inside-avoid">
-      <h2 className="mb-2 text-base font-semibold text-foreground">{title}</h2>
+    <section className="report-section mb-section break-inside-avoid">
+      <h2 className="mb-2 text-body font-semibold text-card-foreground">{title}</h2>
       {children}
     </section>
   );
@@ -17,15 +17,15 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 
 function Table({ columns, rows, emptyMessage }: { columns: string[]; rows: (string | number)[][]; emptyMessage: string }) {
   if (rows.length === 0) {
-    return <p className="text-sm text-muted-foreground">{emptyMessage}</p>;
+    return <p className="text-label font-normal text-muted-foreground">{emptyMessage}</p>;
   }
   return (
     <div className="overflow-x-auto">
-      <table className="w-full min-w-max border-collapse text-left text-sm">
+      <table className="w-full min-w-max border-collapse text-left text-label font-normal tabular-nums">
         <thead>
           <tr>
             {columns.map((c) => (
-              <th key={c} scope="col" className="border-b border-border px-2 py-1 font-medium text-foreground">
+              <th key={c} scope="col" className="border-b border-border px-2 py-1.5 font-medium text-card-foreground">
                 {c}
               </th>
             ))}
@@ -35,7 +35,7 @@ function Table({ columns, rows, emptyMessage }: { columns: string[]; rows: (stri
           {rows.map((row, i) => (
             <tr key={i}>
               {row.map((cell, j) => (
-                <td key={j} className="border-b border-border px-2 py-1 text-foreground">
+                <td key={j} className="border-b border-border px-2 py-1.5 text-card-foreground">
                   {cell}
                 </td>
               ))}
@@ -56,11 +56,11 @@ function Table({ columns, rows, emptyMessage }: { columns: string[]; rows: (stri
  */
 export function PrintableReport({ data }: PrintableReportProps) {
   return (
-    <article id="printable-report" className="rounded-2xl border border-border bg-card p-6 text-foreground">
-      <header className="mb-6 border-b border-border pb-4">
-        <h1 className="text-xl font-semibold text-foreground">Period tracker report</h1>
-        <p className="text-sm text-muted-foreground">Date range: {formatReportRange(data.range)}</p>
-        <p className="text-sm text-muted-foreground">A record of what was self-reported in the app during this range.</p>
+    <article id="printable-report" className="stage p-card sm:p-section">
+      <header className="mb-section flex flex-col gap-1 border-b border-border pb-4">
+        <h1 className="text-heading text-card-foreground">Period tracker report</h1>
+        <p className="text-label font-normal text-muted-foreground tabular-nums">Date range: {formatReportRange(data.range)}</p>
+        <p className="text-label font-normal text-muted-foreground">A record of what was self-reported in the app during this range.</p>
       </header>
 
       <Section title="Periods">
@@ -126,13 +126,13 @@ export function PrintableReport({ data }: PrintableReportProps) {
       {data.medicationsAndContraception !== null ? (
         <Section title="Medications & contraception">
           {data.medicationsAndContraception.length > 0 ? (
-            <ul className="list-disc pl-5 text-sm text-foreground">
+            <ul className="list-disc pl-5 text-label font-normal text-card-foreground">
               {data.medicationsAndContraception.map((line, i) => (
                 <li key={i}>{line}</li>
               ))}
             </ul>
           ) : (
-            <p className="text-sm text-muted-foreground">Nothing recorded.</p>
+            <p className="text-label font-normal text-muted-foreground">Nothing recorded.</p>
           )}
         </Section>
       ) : null}
@@ -140,13 +140,13 @@ export function PrintableReport({ data }: PrintableReportProps) {
       {data.pregnancyAndLifeStage !== null ? (
         <Section title="Pregnancy & life-stage status">
           {data.pregnancyAndLifeStage.length > 0 ? (
-            <ul className="list-disc pl-5 text-sm text-foreground">
+            <ul className="list-disc pl-5 text-label font-normal text-card-foreground">
               {data.pregnancyAndLifeStage.map((line, i) => (
                 <li key={i}>{line}</li>
               ))}
             </ul>
           ) : (
-            <p className="text-sm text-muted-foreground">Nothing recorded.</p>
+            <p className="text-label font-normal text-muted-foreground">Nothing recorded.</p>
           )}
         </Section>
       ) : null}
@@ -159,7 +159,7 @@ export function PrintableReport({ data }: PrintableReportProps) {
         />
       </Section>
 
-      <footer className="mt-8 border-t border-border pt-4 text-xs text-muted-foreground">
+      <footer className="mt-8 border-t border-border pt-4 text-caption text-muted-foreground">
         <p>This is a record of what was self-reported in the app — not a clinical assessment.</p>
         <p className="mt-1">{DISCLAIMER}</p>
       </footer>

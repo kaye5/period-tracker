@@ -30,6 +30,8 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { ChipCheck } from "@/components/daylog/ChipGroup";
+import { cn } from "@/lib/utils";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { DISCLAIMER, FERTILITY_DISCLAIMER } from "@/lib/copy/general";
 import {
@@ -80,6 +82,11 @@ const HORMONAL_METHOD_OPTIONS: { value: HormonalMethodKind; label: string }[] = 
   { value: "implant", label: "Implant" },
   { value: "injection", label: "Injection" },
 ];
+
+/** Shared Daylight control styles for the wizard's steps. */
+const INPUT = "h-chip rounded-xl px-3 text-body tabular-nums md:text-body";
+const ROW_LABEL = "text-body font-normal text-card-foreground";
+const SWITCH_PANEL = "min-h-chip rounded-xl bg-muted px-4 py-2";
 
 const REGULARITY_OPTIONS: { value: Regularity; label: string }[] = [
   { value: "consistent", label: "Fairly consistent" },
@@ -195,7 +202,7 @@ export function OnboardingWizard() {
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-md flex-1 flex-col gap-4 px-4 py-8">
+    <div className="mx-auto flex w-full max-w-md flex-1 flex-col gap-section px-gutter py-section">
       <ProgressDots total={STEP_ORDER.length} index={stepIndex} />
 
       {step === "welcome" && <WelcomeStep />}
@@ -235,21 +242,21 @@ export function OnboardingWizard() {
       {step === "review" && <ReviewStep answers={answers} />}
 
       {submitError ? (
-        <Alert variant="destructive">
+        <Alert variant="destructive" className="border-destructive">
           <AlertDescription>{submitError}</AlertDescription>
         </Alert>
       ) : null}
 
-      <div className="mt-2 flex items-center justify-between gap-3">
-        <Button variant="ghost" onClick={goBack} disabled={stepIndex === 0 || submitting}>
+      <div className="flex items-center justify-between gap-3">
+        <Button variant="ghost" className="rounded-full" onClick={goBack} disabled={stepIndex === 0 || submitting}>
           Back
         </Button>
         {step === "review" ? (
-          <Button onClick={finish} disabled={submitting}>
+          <Button className="rounded-full px-6" onClick={finish} disabled={submitting}>
             {submitting ? "Saving…" : "Finish setup"}
           </Button>
         ) : (
-          <Button onClick={goNext} disabled={submitting}>
+          <Button className="rounded-full px-6" onClick={goNext} disabled={submitting}>
             Continue
           </Button>
         )}
@@ -258,15 +265,26 @@ export function OnboardingWizard() {
   );
 }
 
+/** Done and current steps are filled, upcoming ones outlined, and the current one is
+ * also wider — plus the step count as text — so progress never rests on colour alone. */
 function ProgressDots({ total, index }: { total: number; index: number }) {
   return (
-    <div className="flex items-center gap-1.5" aria-hidden="true">
-      {Array.from({ length: total }, (_, i) => (
-        <span
-          key={i}
-          className={["h-1.5 flex-1 rounded-full", i <= index ? "bg-primary" : "bg-muted"].join(" ")}
-        />
-      ))}
+    <div className="flex items-center justify-between gap-3">
+      <div className="flex items-center gap-1.5" aria-hidden="true">
+        {Array.from({ length: total }, (_, i) => (
+          <span
+            key={i}
+            className={cn(
+              "h-2 rounded-full border transition-all",
+              i === index ? "w-6" : "w-2",
+              i <= index ? "border-primary bg-primary" : "border-border-strong bg-transparent",
+            )}
+          />
+        ))}
+      </div>
+      <p className="text-caption text-muted-foreground tabular-nums">
+        Step {index + 1} of {total}
+      </p>
     </div>
   );
 }
@@ -283,10 +301,14 @@ function StepShell({
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-xl font-semibold">{title}</CardTitle>
-        {description ? <CardDescription>{description}</CardDescription> : null}
+        <CardTitle role="heading" aria-level={1} className="text-title">
+          {title}
+        </CardTitle>
+        {description ? (
+          <CardDescription className="mt-1 text-label font-normal text-pretty">{description}</CardDescription>
+        ) : null}
       </CardHeader>
-      <CardContent className="flex flex-col gap-4">{children}</CardContent>
+      <CardContent className="flex flex-col gap-section">{children}</CardContent>
     </Card>
   );
 }
@@ -294,12 +316,12 @@ function StepShell({
 function WelcomeStep() {
   return (
     <StepShell title="Let's set up your tracker">
-      <p className="text-sm text-foreground">
+      <p className="text-body text-card-foreground text-pretty">
         A few questions get you a first estimate. Every question is optional — answer
         &quot;I don&apos;t know&quot; or skip anything you&apos;d rather not answer, and
         nothing here assumes what you&apos;re using this app for.
       </p>
-      <Alert>
+      <Alert className="border-border">
         <AlertDescription>{DISCLAIMER}</AlertDescription>
       </Alert>
     </StepShell>
@@ -327,7 +349,7 @@ function LastPeriodStep({
           <Input
             id="last-period-date"
             type="date"
-            className="h-11"
+            className={INPUT}
             max={today}
             value={value ?? ""}
             disabled={skipped}
@@ -346,13 +368,13 @@ function LastPeriodStep({
             }}
           />
         </Field>
-        <Field orientation="horizontal">
+        <Field orientation="horizontal" className="min-h-chip">
           <Checkbox
             id="skip-last-period"
             checked={skipped}
             onCheckedChange={(checked) => onChange(checked ? null : today)}
           />
-          <FieldLabel htmlFor="skip-last-period" className="font-normal">
+          <FieldLabel htmlFor="skip-last-period" className={ROW_LABEL}>
             I&apos;ll log this later
           </FieldLabel>
         </Field>
@@ -377,13 +399,13 @@ function CycleLengthStep({
       description="Counted from the first day of one period to the first day of the next. If you're not sure, say so — this app never assumes a number for you."
     >
       <FieldGroup>
-        <Field orientation="horizontal">
+        <Field orientation="horizontal" className="min-h-chip">
           <Checkbox
             id="cycle-length-unknown"
             checked={!known}
             onCheckedChange={(checked) => onChange(!checked, checked ? null : days)}
           />
-          <FieldLabel htmlFor="cycle-length-unknown" className="font-normal">
+          <FieldLabel htmlFor="cycle-length-unknown" className={ROW_LABEL}>
             I don&apos;t know
           </FieldLabel>
         </Field>
@@ -398,11 +420,11 @@ function CycleLengthStep({
                 min={CYCLE_LENGTH_BOUNDS.min}
                 max={CYCLE_LENGTH_BOUNDS.max}
                 aria-invalid={invalid || undefined}
-                className="h-11 w-28"
+                className={cn(INPUT, "w-28")}
                 value={days ?? ""}
                 onChange={(e) => onChange(true, e.target.value === "" ? null : Number(e.target.value))}
               />
-              <span className="text-sm text-muted-foreground">days</span>
+              <span className="text-label font-normal text-muted-foreground">days</span>
             </div>
             {invalid ? (
               <FieldError>
@@ -430,13 +452,13 @@ function PeriodDurationStep({
   return (
     <StepShell title="How many days does your period usually last?">
       <FieldGroup>
-        <Field orientation="horizontal">
+        <Field orientation="horizontal" className="min-h-chip">
           <Checkbox
             id="period-duration-unknown"
             checked={!known}
             onCheckedChange={(checked) => onChange(!checked, checked ? null : days)}
           />
-          <FieldLabel htmlFor="period-duration-unknown" className="font-normal">
+          <FieldLabel htmlFor="period-duration-unknown" className={ROW_LABEL}>
             I don&apos;t know
           </FieldLabel>
         </Field>
@@ -451,11 +473,11 @@ function PeriodDurationStep({
                 min={PERIOD_DURATION_BOUNDS.min}
                 max={PERIOD_DURATION_BOUNDS.max}
                 aria-invalid={invalid || undefined}
-                className="h-11 w-28"
+                className={cn(INPUT, "w-28")}
                 value={days ?? ""}
                 onChange={(e) => onChange(true, e.target.value === "" ? null : Number(e.target.value))}
               />
-              <span className="text-sm text-muted-foreground">days</span>
+              <span className="text-label font-normal text-muted-foreground">days</span>
             </div>
             {invalid ? (
               <FieldError>
@@ -480,7 +502,9 @@ function RegularityStep({
   return (
     <StepShell title="Are your cycles usually consistent, or do they vary?">
       <FieldSet>
-        <FieldLegend variant="label">Cycle regularity</FieldLegend>
+        <FieldLegend variant="label" className="text-label">
+          Cycle regularity
+        </FieldLegend>
         <ToggleGroup
           aria-label="Cycle regularity"
           value={[value]}
@@ -488,11 +512,11 @@ function RegularityStep({
             const picked = next[0] as Regularity | undefined;
             if (picked) onChange(picked);
           }}
-          variant="outline"
-          className="w-full"
+          className="flex-wrap"
         >
           {REGULARITY_OPTIONS.map((o) => (
-            <ToggleGroupItem key={o.value} value={o.value} className="h-11 flex-1 px-3 text-sm">
+            <ToggleGroupItem key={o.value} value={o.value} variant="chip" size="chip">
+              <ChipCheck />
               {o.label}
             </ToggleGroupItem>
           ))}
@@ -517,8 +541,8 @@ function SpecialStatesStep({
       title="Anything else going on?"
       description="These help this app avoid false alarms — e.g. it won't flag a missed period while you're pregnant. Answer as many or as few as you like."
     >
-      <Field orientation="horizontal" className="rounded-lg border border-border bg-muted p-3">
-        <FieldLabel htmlFor="prefer-not-to-say" className="font-normal">
+      <Field orientation="horizontal" className={SWITCH_PANEL}>
+        <FieldLabel htmlFor="prefer-not-to-say" className={ROW_LABEL}>
           I&apos;d rather not answer these
         </FieldLabel>
         <Switch
@@ -529,7 +553,7 @@ function SpecialStatesStep({
       </Field>
 
       {preferNotToSay ? null : (
-        <FieldGroup>
+        <FieldGroup className="gap-0 divide-y divide-border">
           <YesNoRow label="Pregnant" checked={answers.pregnant} onChange={(pregnant) => patch({ pregnant })} />
           <YesNoRow
             label="Gave birth recently (postpartum)"
@@ -555,14 +579,20 @@ function SpecialStatesStep({
             onChange={(usingHormonalMethod) => patch({ usingHormonalMethod })}
           />
           {answers.usingHormonalMethod ? (
-            <div className="flex flex-col gap-4 pl-2">
+            <div className="flex flex-col gap-stack py-3">
               <Field>
-                <FieldLabel htmlFor="hormonal-method">Method</FieldLabel>
+                <FieldLabel htmlFor="hormonal-method" className="text-label">
+                  Method
+                </FieldLabel>
                 <Select
                   value={answers.hormonalMethodKind}
                   onValueChange={(v) => patch({ hormonalMethodKind: v })}
                 >
-                  <SelectTrigger id="hormonal-method" className="h-11 w-full" aria-label="Hormonal method">
+                  <SelectTrigger
+                    id="hormonal-method"
+                    className="h-chip w-full rounded-xl px-3 text-body"
+                    aria-label="Hormonal method"
+                  >
                     <SelectValue placeholder="Choose one" />
                   </SelectTrigger>
                   <SelectContent>
@@ -641,8 +671,8 @@ function YesNoRow({
 }) {
   const id = `switch-${slugId(label)}`;
   return (
-    <Field orientation="horizontal">
-      <FieldLabel htmlFor={id} className="font-normal">
+    <Field orientation="horizontal" className="min-h-chip py-2">
+      <FieldLabel htmlFor={id} className={ROW_LABEL}>
         {label}
       </FieldLabel>
       <Switch id={id} checked={checked} onCheckedChange={onChange} />
@@ -663,13 +693,15 @@ function DateField({
 }) {
   const id = `date-${slugId(label)}`;
   return (
-    <Field>
-      <FieldLabel htmlFor={id}>{label}</FieldLabel>
+    <Field className="py-3">
+      <FieldLabel htmlFor={id} className="text-label">
+        {label}
+      </FieldLabel>
       <Input
         id={id}
         type="date"
         max={max}
-        className="h-11"
+        className={INPUT}
         value={value ?? ""}
         onChange={(e) => {
           if (!e.target.value) {
@@ -696,16 +728,16 @@ function FertilityStep({
 }) {
   return (
     <StepShell title="Fertility window estimates">
-      <Alert>
+      <Alert className="border-border">
         <AlertDescription>{FERTILITY_DISCLAIMER}</AlertDescription>
       </Alert>
-      <p className="text-sm text-muted-foreground">
+      <p className="text-label font-normal text-muted-foreground text-pretty">
         This is off by default. If you turn it on, you can turn it off again at any time
         in Settings — turning it off removes every fertility-related screen and field, it
         doesn&apos;t just hide them.
       </p>
-      <Field orientation="horizontal" className="rounded-lg border border-border bg-muted p-3">
-        <FieldLabel htmlFor="fertility-enabled" className="font-normal">
+      <Field orientation="horizontal" className={SWITCH_PANEL}>
+        <FieldLabel htmlFor="fertility-enabled" className={ROW_LABEL}>
           Show fertility window estimates
         </FieldLabel>
         <Switch id="fertility-enabled" checked={enabled} onCheckedChange={onChange} />
@@ -737,11 +769,11 @@ function ReviewStep({ answers }: { answers: OnboardingAnswers }) {
   ];
   return (
     <StepShell title="Review" description="You can change any of this later in Settings.">
-      <dl className="flex flex-col gap-2 text-sm">
+      <dl className="flex flex-col divide-y divide-border text-label">
         {rows.map(([label, val]) => (
-          <div key={label} className="flex items-center justify-between gap-2 border-b border-border py-2 last:border-b-0">
-            <dt className="text-muted-foreground">{label}</dt>
-            <dd className="font-medium text-foreground">{val}</dd>
+          <div key={label} className="flex min-h-chip items-center justify-between gap-2 py-2">
+            <dt className="font-normal text-muted-foreground">{label}</dt>
+            <dd className="text-right text-card-foreground tabular-nums">{val}</dd>
           </div>
         ))}
       </dl>

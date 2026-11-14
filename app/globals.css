@@ -3,206 +3,333 @@
 @import "shadcn/tailwind.css";
 
 /*
- * Theme (SPEC.md §4.5). The app uses shadcn/ui (Base UI) components, so colours are
- * expressed as shadcn's semantic tokens (--background, --primary, --muted-foreground …)
- * — but the values are the app's own calm rose / warm-neutral palette, not shadcn's
- * default neutral. Light + dark are both defined; every text-on-surface pairing clears
- * WCAG 4.5:1 and every control outline (--input) clears 3:1 against its surface.
+ * Theme — "Daylight" (docs: the approved redesign brief). Colour is light; ink is action.
+ * Three layers, all defined here and nowhere else:
  *
- * Legacy aliases: the pre-shadcn primitives referenced tokens like `--color-surface`,
- * `--color-text-muted`, `--color-danger`. Those are re-exported at the bottom of the
- * @theme block, pointing at the same source variables, so existing markup keeps working
- * while screens migrate to shadcn utilities. (The hand-rolled inline-SVG charts that
- * used to consume `--chart-actual`/`--chart-cat-*` directly were replaced by shadcn/ui
- * chart + recharts — those now-dead vars were removed with them.)
+ *   1. Primitives — raw values, named by hue/step. Never referenced by components.
+ *   2. Semantic   — shadcn's token names (--background, --primary, …) plus the app's
+ *                   phase and calendar roles. Switched per colour scheme.
+ *   3. Component  — sizes for the few components with a fixed construction (quick-log
+ *                   button, chips, calendar cells, sheet, nav), exposed to Tailwind as
+ *                   spacing/radius utilities in the @theme block.
  *
- * Dark mode is driven by the CSS variables below (they switch under
- * prefers-color-scheme, a `.dark` class, or an explicit [data-theme="dark"]). shadcn
- * components are token-based, so they adapt automatically without needing `dark:`.
+ * Every text-on-surface pair clears WCAG 4.5:1 and every mark, control outline and focus
+ * ring clears 3:1, in both schemes (SPEC.md §4.5). Recorded period days use the INK
+ * colour — no red or pink anywhere — so the only red in the app is --destructive.
  */
 
-/* Tailwind's `dark:` variant (used by a few shadcn components) keys off .dark or an
-   explicit data-theme="dark". prefers-color-scheme is handled by the media block below. */
 @custom-variant dark (&:where(.dark, .dark *, [data-theme="dark"], [data-theme="dark"] *));
 
+/* ---------------------------------------------------------------- 1. primitives */
 :root {
-  --radius: 0.75rem;
+  --neutral-0: #ffffff;
+  --neutral-50: #f5f6f8;
+  --neutral-100: #ebf0f8;
+  --neutral-150: #e4e6eb;
+  --neutral-200: #dde2e9;
+  --neutral-500: #868b95;
+  --neutral-600: #5d6069;
+  --neutral-950: #1f2025;
 
-  /* shadcn semantic tokens — calm rose palette (light) */
-  --background: #faf7f5;
-  --foreground: #211a1e;
-  --card: #ffffff;
-  --card-foreground: #211a1e;
-  --popover: #ffffff;
-  --popover-foreground: #211a1e;
-  --primary: #9d174d;
-  --primary-foreground: #ffffff;
-  --secondary: #f1e9ec;
-  --secondary-foreground: #211a1e;
-  --muted: #f1e9ec;
-  --muted-foreground: #6b5f65;
-  --accent: #f1e9ec;
-  --accent-foreground: #211a1e;
-  --destructive: #b3261e;
-  --destructive-foreground: #ffffff;
-  --border: #ded4d8;
-  --input: #8f7d84;
-  --ring: #6d28d9;
+  --night-950: #111214;
+  --night-900: #1a1b1f;
+  --night-850: #23262c;
+  --night-800: #2a2c31;
+  --night-700: #30333a;
+  --night-500: #7c818b;
+  --night-300: #a3a7af;
+  --night-50: #f2f3f5;
 
-  --chart-1: #9d174d;
-  --chart-2: #1d6a96;
-  --chart-3: #6d28d9;
-  --chart-4: #8a5a00;
-  --chart-5: #2f7d32;
+  --sky-950: #1e2a44;
+  --sky-700: #1d3f86;
+  --sky-600: #2f5fc4;
+  --sky-300: #82a8f0;
+  --sky-200: #a9c3f5;
+  --sky-100: #dce7fb;
 
-  --sidebar: #ffffff;
-  --sidebar-foreground: #211a1e;
-  --sidebar-primary: #9d174d;
-  --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #f1e9ec;
-  --sidebar-accent-foreground: #211a1e;
-  --sidebar-border: #ded4d8;
-  --sidebar-ring: #6d28d9;
+  --mint-950: #14322b;
+  --mint-800: #134e41;
+  --mint-600: #1f7a66;
+  --mint-300: #5cc8ae;
+  --mint-200: #8fdcc8;
+  --mint-100: #d5efea;
 
-  /* app extras with no shadcn equivalent */
-  --primary-hover: #7f123e;
-  --warning: #8a5a00;
-  --warning-foreground: #ffffff;
-  --text-inverse: #ffffff;
-  --border-strong: #8f7d84;
-  /* "Today" marker — a distinct teal, deliberately unlike the rose period colour and the
-     violet fertile/ovulation colour so today never reads as either. */
-  --today: #0d9488;
+  --amber-950: #3a2716;
+  --amber-800: #6e3510;
+  --amber-600: #a8571a;
+  --amber-300: #e39a5b;
+  --amber-200: #f0bc8c;
+  --amber-100: #f6e2d3;
 
-  /* sequential rose ramp for the flow-by-day chart (components/charts/FlowByPeriodDayChart) —
-     flow is ORDERED data (spotting -> very_heavy), so this is a monotonic-lightness ramp,
-     not five categorical hues. Light mode: light -> dark = spotting -> very_heavy. */
-  --chart-flow-1: #f5b8cd;
-  --chart-flow-2: #ef8fb3;
-  --chart-flow-3: #e1568e;
-  --chart-flow-4: #b62a63;
-  --chart-flow-5: #7d1a45;
+  --cobalt-600: #2f5bd3;
+  --cobalt-300: #7da2ff;
+  --red-700: #b42318;
+  --red-300: #ff7a6b;
+  --ochre-700: #8a5a00;
+  --ochre-300: #e3b23c;
 
-  --shadow-raised: 0 8px 24px -8px rgb(33 26 30 / 0.25);
+  /* ordered flow ramp (spotting -> very heavy), monotonic in lightness */
+  --flow-light-1: #8a909a;
+  --flow-light-2: #6e7480;
+  --flow-light-3: #545a66;
+  --flow-light-4: #3a3e47;
+  --flow-light-5: #1f2025;
+  --flow-dark-1: #6e7380;
+  --flow-dark-2: #8e93a0;
+  --flow-dark-3: #b0b4be;
+  --flow-dark-4: #d2d5db;
+  --flow-dark-5: #f2f3f5;
+
+  /* ------------------------------------------------------------ 3. component sizes */
+  --radius: 0.75rem; /* controls: inputs, small buttons */
+  --radius-stage-size: 1.5rem; /* cards, sheet */
+  --quicklog-h: 3.5rem;
+  --chip-h: 2.75rem;
+  --cal-cell: 2.75rem;
+  --nav-h: 4rem;
   --touch-target-min: 44px;
 }
 
-/* Dark palette — one set of values, three triggers: OS preference (unless a light
-   override is pinned), a .dark class, or [data-theme="dark"]. */
+/* ---------------------------------------------------------------- 2. semantic (light) */
+:root {
+  --background: var(--neutral-50);
+  --foreground: var(--neutral-950);
+  --card: var(--neutral-0);
+  --card-foreground: var(--neutral-950);
+  --popover: var(--neutral-0);
+  --popover-foreground: var(--neutral-950);
+  --primary: var(--neutral-950);
+  --primary-foreground: var(--neutral-0);
+  --secondary: var(--neutral-100);
+  --secondary-foreground: var(--neutral-950);
+  --muted: var(--neutral-100);
+  --muted-foreground: var(--neutral-600);
+  --accent: var(--neutral-100);
+  --accent-foreground: var(--neutral-950);
+  --border: var(--neutral-200);
+  --border-strong: var(--neutral-500);
+  --input: var(--neutral-500);
+  --ring: var(--cobalt-600);
+  --destructive: var(--red-700);
+  --destructive-foreground: var(--neutral-0);
+  --warning: var(--ochre-700);
+  --warning-foreground: var(--neutral-0);
+
+  --phase-menstrual: var(--neutral-950);
+  --phase-menstrual-foreground: var(--neutral-0);
+  --phase-menstrual-wash: var(--neutral-150);
+  --phase-menstrual-wash-foreground: var(--neutral-950);
+  --phase-follicular: var(--sky-600);
+  --phase-follicular-wash: var(--sky-100);
+  --phase-follicular-wash-foreground: var(--sky-700);
+  --phase-fertile: var(--mint-600);
+  --phase-fertile-wash: var(--mint-100);
+  --phase-fertile-wash-foreground: var(--mint-800);
+  --phase-luteal: var(--amber-600);
+  --phase-luteal-wash: var(--amber-100);
+  --phase-luteal-wash-foreground: var(--amber-800);
+
+  --today: var(--neutral-950);
+
+  --chart-1: var(--neutral-950);
+  --chart-2: var(--sky-600);
+  --chart-3: var(--mint-600);
+  --chart-4: var(--amber-600);
+  --chart-5: var(--neutral-600);
+  --chart-flow-1: var(--flow-light-1);
+  --chart-flow-2: var(--flow-light-2);
+  --chart-flow-3: var(--flow-light-3);
+  --chart-flow-4: var(--flow-light-4);
+  --chart-flow-5: var(--flow-light-5);
+
+  --sidebar: var(--neutral-0);
+  --sidebar-foreground: var(--neutral-950);
+  --sidebar-primary: var(--neutral-950);
+  --sidebar-primary-foreground: var(--neutral-0);
+  --sidebar-accent: var(--neutral-100);
+  --sidebar-accent-foreground: var(--neutral-950);
+  --sidebar-border: var(--neutral-200);
+  --sidebar-ring: var(--cobalt-600);
+
+  --shadow-float-value: 0 0 16px -8px rgb(0 0 0 / 0.25);
+}
+
+/* ---------------------------------------------------------------- 2. semantic (dark)
+   One set of values, three triggers: OS preference (unless light is pinned), a .dark
+   class, or [data-theme="dark"]. The block is repeated because a media query and a
+   selector list cannot share one rule. */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --background: #171217;
-    --foreground: #f2e9ec;
-    --card: #241d22;
-    --card-foreground: #f2e9ec;
-    --popover: #2c232a;
-    --popover-foreground: #f2e9ec;
-    --primary: #f472a0;
-    --primary-foreground: #1a1015;
-    --secondary: #2f262c;
-    --secondary-foreground: #f2e9ec;
-    --muted: #2f262c;
-    --muted-foreground: #b6a8ae;
-    --accent: #2f262c;
-    --accent-foreground: #f2e9ec;
-    --destructive: #f2837a;
-    --destructive-foreground: #1a1015;
-    --border: #4a3f45;
-    --input: #8f7d84;
-    --ring: #c4b5fd;
+    --background: var(--night-950);
+    --foreground: var(--night-50);
+    --card: var(--night-900);
+    --card-foreground: var(--night-50);
+    --popover: var(--night-900);
+    --popover-foreground: var(--night-50);
+    --primary: var(--night-50);
+    --primary-foreground: var(--night-950);
+    --secondary: var(--night-850);
+    --secondary-foreground: var(--night-50);
+    --muted: var(--night-850);
+    --muted-foreground: var(--night-300);
+    --accent: var(--night-850);
+    --accent-foreground: var(--night-50);
+    --border: var(--night-700);
+    --border-strong: var(--night-500);
+    --input: var(--night-500);
+    --ring: var(--cobalt-300);
+    --destructive: var(--red-300);
+    --destructive-foreground: var(--night-950);
+    --warning: var(--ochre-300);
+    --warning-foreground: var(--night-950);
 
-    --chart-1: #f472a0;
-    --chart-2: #67c2e8;
-    --chart-3: #c4b5fd;
-    --chart-4: #e3b23c;
-    --chart-5: #7ed07f;
+    --phase-menstrual: var(--night-50);
+    --phase-menstrual-foreground: var(--night-950);
+    --phase-menstrual-wash: var(--night-800);
+    --phase-menstrual-wash-foreground: var(--night-50);
+    --phase-follicular: var(--sky-300);
+    --phase-follicular-wash: var(--sky-950);
+    --phase-follicular-wash-foreground: var(--sky-200);
+    --phase-fertile: var(--mint-300);
+    --phase-fertile-wash: var(--mint-950);
+    --phase-fertile-wash-foreground: var(--mint-200);
+    --phase-luteal: var(--amber-300);
+    --phase-luteal-wash: var(--amber-950);
+    --phase-luteal-wash-foreground: var(--amber-200);
 
-    --sidebar: #241d22;
-    --sidebar-foreground: #f2e9ec;
-    --sidebar-primary: #f472a0;
-    --sidebar-primary-foreground: #1a1015;
-    --sidebar-accent: #2f262c;
-    --sidebar-accent-foreground: #f2e9ec;
-    --sidebar-border: #4a3f45;
-    --sidebar-ring: #c4b5fd;
+    --today: var(--night-50);
 
-    --primary-hover: #f98cb2;
-    --warning: #e3b23c;
-    --warning-foreground: #1a1015;
-    --text-inverse: #1a1015;
-    --border-strong: #8f7d84;
-    --today: #2dd4bf;
+    --chart-1: var(--night-50);
+    --chart-2: var(--sky-300);
+    --chart-3: var(--mint-300);
+    --chart-4: var(--amber-300);
+    --chart-5: var(--night-300);
+    --chart-flow-1: var(--flow-dark-1);
+    --chart-flow-2: var(--flow-dark-2);
+    --chart-flow-3: var(--flow-dark-3);
+    --chart-flow-4: var(--flow-dark-4);
+    --chart-flow-5: var(--flow-dark-5);
 
-    /* dark mode mirrored so heavier flow reads brighter; still monotonic in lightness. */
-    --chart-flow-1: #4a2035;
-    --chart-flow-2: #6d2a4c;
-    --chart-flow-3: #96386a;
-    --chart-flow-4: #c95c93;
-    --chart-flow-5: #f2a0c2;
+    --sidebar: var(--night-900);
+    --sidebar-foreground: var(--night-50);
+    --sidebar-primary: var(--night-50);
+    --sidebar-primary-foreground: var(--night-950);
+    --sidebar-accent: var(--night-850);
+    --sidebar-accent-foreground: var(--night-50);
+    --sidebar-border: var(--night-700);
+    --sidebar-ring: var(--cobalt-300);
 
-    --shadow-raised: 0 8px 24px -8px rgb(0 0 0 / 0.5);
+    --shadow-float-value: 0 0 24px -8px rgb(0 0 0 / 0.6);
   }
 }
 
 .dark,
 :root[data-theme="dark"] {
-  --background: #171217;
-  --foreground: #f2e9ec;
-  --card: #241d22;
-  --card-foreground: #f2e9ec;
-  --popover: #2c232a;
-  --popover-foreground: #f2e9ec;
-  --primary: #f472a0;
-  --primary-foreground: #1a1015;
-  --secondary: #2f262c;
-  --secondary-foreground: #f2e9ec;
-  --muted: #2f262c;
-  --muted-foreground: #b6a8ae;
-  --accent: #2f262c;
-  --accent-foreground: #f2e9ec;
-  --destructive: #f2837a;
-  --destructive-foreground: #1a1015;
-  --border: #4a3f45;
-  --input: #8f7d84;
-  --ring: #c4b5fd;
+  --background: var(--night-950);
+  --foreground: var(--night-50);
+  --card: var(--night-900);
+  --card-foreground: var(--night-50);
+  --popover: var(--night-900);
+  --popover-foreground: var(--night-50);
+  --primary: var(--night-50);
+  --primary-foreground: var(--night-950);
+  --secondary: var(--night-850);
+  --secondary-foreground: var(--night-50);
+  --muted: var(--night-850);
+  --muted-foreground: var(--night-300);
+  --accent: var(--night-850);
+  --accent-foreground: var(--night-50);
+  --border: var(--night-700);
+  --border-strong: var(--night-500);
+  --input: var(--night-500);
+  --ring: var(--cobalt-300);
+  --destructive: var(--red-300);
+  --destructive-foreground: var(--night-950);
+  --warning: var(--ochre-300);
+  --warning-foreground: var(--night-950);
 
-  --chart-1: #f472a0;
-  --chart-2: #67c2e8;
-  --chart-3: #c4b5fd;
-  --chart-4: #e3b23c;
-  --chart-5: #7ed07f;
+  --phase-menstrual: var(--night-50);
+  --phase-menstrual-foreground: var(--night-950);
+  --phase-menstrual-wash: var(--night-800);
+  --phase-menstrual-wash-foreground: var(--night-50);
+  --phase-follicular: var(--sky-300);
+  --phase-follicular-wash: var(--sky-950);
+  --phase-follicular-wash-foreground: var(--sky-200);
+  --phase-fertile: var(--mint-300);
+  --phase-fertile-wash: var(--mint-950);
+  --phase-fertile-wash-foreground: var(--mint-200);
+  --phase-luteal: var(--amber-300);
+  --phase-luteal-wash: var(--amber-950);
+  --phase-luteal-wash-foreground: var(--amber-200);
 
-  --sidebar: #241d22;
-  --sidebar-foreground: #f2e9ec;
-  --sidebar-primary: #f472a0;
-  --sidebar-primary-foreground: #1a1015;
-  --sidebar-accent: #2f262c;
-  --sidebar-accent-foreground: #f2e9ec;
-  --sidebar-border: #4a3f45;
-  --sidebar-ring: #c4b5fd;
+  --today: var(--night-50);
 
-  --primary-hover: #f98cb2;
-  --warning: #e3b23c;
-  --warning-foreground: #1a1015;
-  --text-inverse: #1a1015;
-  --border-strong: #8f7d84;
-  --today: #2dd4bf;
+  --chart-1: var(--night-50);
+  --chart-2: var(--sky-300);
+  --chart-3: var(--mint-300);
+  --chart-4: var(--amber-300);
+  --chart-5: var(--night-300);
+  --chart-flow-1: var(--flow-dark-1);
+  --chart-flow-2: var(--flow-dark-2);
+  --chart-flow-3: var(--flow-dark-3);
+  --chart-flow-4: var(--flow-dark-4);
+  --chart-flow-5: var(--flow-dark-5);
 
-  --chart-flow-1: #4a2035;
-  --chart-flow-2: #6d2a4c;
-  --chart-flow-3: #96386a;
-  --chart-flow-4: #c95c93;
-  --chart-flow-5: #f2a0c2;
+  --sidebar: var(--night-900);
+  --sidebar-foreground: var(--night-50);
+  --sidebar-primary: var(--night-50);
+  --sidebar-primary-foreground: var(--night-950);
+  --sidebar-accent: var(--night-850);
+  --sidebar-accent-foreground: var(--night-50);
+  --sidebar-border: var(--night-700);
+  --sidebar-ring: var(--cobalt-300);
 
-  --shadow-raised: 0 8px 24px -8px rgb(0 0 0 / 0.5);
+  --shadow-float-value: 0 0 24px -8px rgb(0 0 0 / 0.6);
 }
 
 @theme inline {
-  /* radius scale */
+  /* radius */
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+  --radius-stage: var(--radius-stage-size);
+
+  /* semantic spacing + component sizes (p-card, gap-section, h-chip, size-cal …) */
+  --spacing-gutter: 1rem;
+  --spacing-stack: 0.75rem;
+  --spacing-card: 1.25rem;
+  --spacing-section: 1.5rem;
+  --spacing-chip: var(--chip-h);
+  --spacing-quicklog: var(--quicklog-h);
+  --spacing-cal: var(--cal-cell);
+  --spacing-nav: var(--nav-h);
+
+  /* type scale (text-display, text-title …); numerals are tabular where data is shown */
+  --text-display: 3.5rem;
+  --text-display--line-height: 1;
+  --text-display--letter-spacing: -0.03em;
+  --text-display--font-weight: 600;
+  --text-title: 1.75rem;
+  --text-title--line-height: 1.1;
+  --text-title--letter-spacing: -0.02em;
+  --text-title--font-weight: 600;
+  --text-heading: 1.25rem;
+  --text-heading--line-height: 1.25;
+  --text-heading--letter-spacing: -0.01em;
+  --text-heading--font-weight: 600;
+  --text-body: 1rem;
+  --text-body--line-height: 1.5;
+  --text-label: 0.875rem;
+  --text-label--line-height: 1.3;
+  --text-label--font-weight: 500;
+  --text-caption: 0.8125rem;
+  --text-caption--line-height: 1.4;
+
+  --shadow-float: var(--shadow-float-value);
+
+  --font-sans: var(--font-manrope), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
 
   /* shadcn semantic utilities */
   --color-background: var(--background);
@@ -219,12 +346,30 @@
   --color-muted-foreground: var(--muted-foreground);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
-  --color-destructive: var(--destructive);
-  --color-destructive-foreground: var(--destructive-foreground);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
   --color-today: var(--today);
+
+  /* phase roles (bg-phase-fertile-wash, text-phase-luteal …) */
+  --color-phase-menstrual: var(--phase-menstrual);
+  --color-phase-menstrual-foreground: var(--phase-menstrual-foreground);
+  --color-phase-menstrual-wash: var(--phase-menstrual-wash);
+  --color-phase-menstrual-wash-foreground: var(--phase-menstrual-wash-foreground);
+  --color-phase-follicular: var(--phase-follicular);
+  --color-phase-follicular-wash: var(--phase-follicular-wash);
+  --color-phase-follicular-wash-foreground: var(--phase-follicular-wash-foreground);
+  --color-phase-fertile: var(--phase-fertile);
+  --color-phase-fertile-wash: var(--phase-fertile-wash);
+  --color-phase-fertile-wash-foreground: var(--phase-fertile-wash-foreground);
+  --color-phase-luteal: var(--phase-luteal);
+  --color-phase-luteal-wash: var(--phase-luteal-wash);
+  --color-phase-luteal-wash-foreground: var(--phase-luteal-wash-foreground);
+
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
   --color-chart-3: var(--chart-3);
@@ -244,30 +389,32 @@
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
 
-  /* app extras */
-  --color-warning: var(--warning);
-  --color-warning-foreground: var(--warning-foreground);
-
-  /* legacy aliases (pre-shadcn primitives + charts) → same source variables */
-  --color-bg: var(--background);
-  --color-surface: var(--card);
-  --color-surface-raised: var(--popover);
-  --color-text: var(--foreground);
-  --color-text-muted: var(--muted-foreground);
-  --color-text-inverse: var(--text-inverse);
   --color-border-strong: var(--border-strong);
-  --color-primary-hover: var(--primary-hover);
-  --color-danger: var(--destructive);
-  --color-danger-foreground: var(--destructive-foreground);
-  --color-chip-bg: var(--secondary);
-  --color-chip-selected-bg: var(--primary);
-  --color-chip-selected-foreground: var(--primary-foreground);
-  --color-focus-ring: var(--ring);
+}
 
-  --font-sans:
-    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  --font-mono:
-    ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+/* The one surface: a broad flat plane with a hairline edge (no drop shadow). Used by Card
+   and by every Today section so all panels share one construction. */
+@utility stage {
+  border-radius: var(--radius-stage-size);
+  background-color: var(--card);
+  color: var(--card-foreground);
+  box-shadow: inset 0 0 0 1px var(--border);
+}
+
+/* Estimate pattern: diagonal hatching cut from the card colour, laid over any fill. Marks
+   the predicted part of the cycle strip by texture, not colour (SPEC.md §4.2). */
+@utility hatch-estimate {
+  background-image: repeating-linear-gradient(135deg, transparent 0 3px, var(--card) 3px 5px);
+}
+
+/* Tailwind v4 defaults border colour to currentColor; shadcn primitives use a bare
+   `border`/`border-t` and expect the theme border. */
+@layer base {
+  *,
+  ::before,
+  ::after {
+    border-color: var(--border);
+  }
 }
 
 html {
@@ -284,4 +431,17 @@ body {
 :focus-visible {
   outline: 2px solid var(--ring);
   outline-offset: 2px;
+}
+
+/* Reduced motion: CSS transitions and tw-animate keyframes collapse to an instant state
+   change. Motion (motion/react) animations are handled by <MotionConfig reducedMotion="user">. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

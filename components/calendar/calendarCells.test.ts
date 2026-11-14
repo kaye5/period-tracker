@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { parseCivil } from "@/lib/date/civil";
 import type { Cycle, DayLog, FertilityEstimate, PredictionResult } from "@/lib/domain/types";
-import { buildCalendarWeeks, dayLogLookup } from "./calendarCells";
+import { buildCalendarWeeks, buildWeekStrip, dayLogLookup } from "./calendarCells";
 
 const TODAY = parseCivil("2026-07-23");
 
@@ -318,5 +318,26 @@ describe("buildCalendarWeeks", () => {
 
   it("phase is null when no `cycles` are passed at all (backward compatible)", () => {
     expect(findCell(weeks, "2026-07-01").indicators.phase).toBeNull();
+  });
+});
+
+describe("buildWeekStrip", () => {
+  it("returns seven consecutive days with weekday columns matching the month grid", () => {
+    const start = parseCivil("2026-11-11");
+    const strip = buildWeekStrip({
+      start,
+      weekStartsOn: 1,
+      today: parseCivil("2026-11-14"),
+      dayLogByDate: new Map(),
+      prediction: null,
+      fertility: null,
+      fertilityEnabled: false,
+    });
+    expect(strip.map((c) => c.date)).toEqual([
+      "2026-11-11", "2026-11-12", "2026-11-13", "2026-11-14", "2026-11-15", "2026-11-16", "2026-11-17",
+    ]);
+    // 2026-11-11 is a Wednesday: column 2 when weeks start on Monday.
+    expect(strip.map((c) => c.column)).toEqual([2, 3, 4, 5, 6, 0, 1]);
+    expect(strip[3].indicators.isToday).toBe(true);
   });
 });

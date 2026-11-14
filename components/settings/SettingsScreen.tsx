@@ -14,11 +14,12 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { FileTextIcon, Trash2Icon } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { parseCivil, todayInZone, type CivilDate } from "@/lib/date/civil";
 import type { HormonalMethodKind, Profile, Settings } from "@/lib/domain/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
 import { Field, FieldContent, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field";
@@ -27,6 +28,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Spinner } from "@/components/ui/spinner";
 import { Switch } from "@/components/ui/switch";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { ChipCheck } from "@/components/daylog/ChipGroup";
 import { PRIVACY_STATEMENT, FERTILITY_DISCLAIMER } from "@/lib/copy/general";
 import { NotificationSettings } from "@/components/settings/NotificationSettings";
 import { DeleteAllDataSheet } from "@/components/settings/DeleteAllDataSheet";
@@ -50,6 +52,14 @@ const HORMONAL_METHOD_OPTIONS: { value: HormonalMethodKind; label: string }[] = 
 ];
 
 type SaveState = "idle" | "saving" | "saved" | "error";
+
+/** Shared Daylight row/control styles for this screen (and its sub-cards). */
+const ROW = "min-h-chip py-2";
+const ROW_LABEL = "text-body font-normal text-card-foreground";
+const SUB_LABEL = "text-label text-card-foreground";
+const INPUT = "h-chip rounded-xl px-3 text-body tabular-nums md:text-body";
+/** Switch lists read as one list: hairline dividers instead of loose gaps. */
+const ROW_LIST = "gap-0 divide-y divide-border";
 
 function todayCivil(): CivilDate {
   const tz = typeof Intl !== "undefined" ? Intl.DateTimeFormat().resolvedOptions().timeZone : "UTC";
@@ -88,8 +98,8 @@ export function SettingsScreen() {
 
   if (deleted) {
     return (
-      <div className="mx-auto w-full max-w-md px-4 py-8">
-        <Empty>
+      <div className="mx-auto w-full max-w-2xl px-gutter py-section">
+        <Empty className="stage">
           <EmptyHeader>
             <EmptyTitle>Everything was deleted</EmptyTitle>
             <EmptyDescription>
@@ -103,7 +113,7 @@ export function SettingsScreen() {
 
   if (!profile) {
     return (
-      <div className="mx-auto flex w-full max-w-md items-center gap-2 px-4 py-8 text-sm text-muted-foreground">
+      <div className="mx-auto flex w-full max-w-2xl items-center gap-2 px-gutter py-section text-label font-normal text-muted-foreground">
         <Spinner />
         Loading settings…
       </div>
@@ -111,22 +121,54 @@ export function SettingsScreen() {
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-md flex-col gap-4 px-4 py-8">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold text-foreground">Settings</h1>
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-section px-gutter py-section">
+      <div className="flex items-baseline justify-between gap-2">
+        <h1 className="text-title text-foreground">Settings</h1>
         <SaveIndicator state={saveState} />
       </div>
 
-      <CycleBasicsCard profile={profile} onSave={save} />
-      <LifeStageCard profile={profile} today={today} onSave={save} hormonalMethodOptions={HORMONAL_METHOD_OPTIONS} />
-      <FeaturesCard profile={profile} onSave={save} />
-      <NotificationSettings
-        settings={profile.settings}
-        onChange={(settings) => save({ ...profile, settings })}
-      />
-      <ScreenLockCard />
-      <DataCard onDeleteClick={() => setDeleteOpen(true)} />
-      <PrivacyCard />
+      {/* Privacy, export and delete live together, first (Flo privacy / Sora data
+          controls): the things someone checks before trusting the app with anything. */}
+      <SettingsSection id="settings-privacy" title="Privacy & data">
+        <Button
+          variant="outline"
+          className="w-full rounded-full bg-card"
+          nativeButton={false}
+          render={<Link href="/report" />}
+        >
+          <FileTextIcon data-icon="inline-start" />
+          Export or build a report
+        </Button>
+        <ScreenLockCard />
+        <PrivacyCard />
+        <Button variant="destructive" className="w-full rounded-full" onClick={() => setDeleteOpen(true)}>
+          <Trash2Icon data-icon="inline-start" />
+          Permanently delete all data
+        </Button>
+      </SettingsSection>
+
+      <SettingsSection
+        id="settings-cycle"
+        title="Cycle basics"
+        action={<Badge variant="secondary">Optional</Badge>}
+      >
+        <CycleBasicsCard profile={profile} onSave={save} />
+      </SettingsSection>
+
+      <SettingsSection id="settings-situation" title="Your situation">
+        <LifeStageCard profile={profile} today={today} onSave={save} hormonalMethodOptions={HORMONAL_METHOD_OPTIONS} />
+      </SettingsSection>
+
+      <SettingsSection id="settings-features" title="Features">
+        <FeaturesCard profile={profile} onSave={save} />
+      </SettingsSection>
+
+      <SettingsSection id="settings-notifications" title="Notifications">
+        <NotificationSettings
+          settings={profile.settings}
+          onChange={(settings) => save({ ...profile, settings })}
+        />
+      </SettingsSection>
 
       {deleteOpen ? (
         <DeleteAllDataSheet
@@ -138,7 +180,33 @@ export function SettingsScreen() {
           }}
         />
       ) : null}
-    </div>
+    </main>
+  );
+}
+
+/** A visible, labelled settings group: the heading sits on the page canvas, the cards
+ * below it on their own stages, so the page scans by group. */
+function SettingsSection({
+  id,
+  title,
+  action,
+  children,
+}: {
+  id: string;
+  title: string;
+  action?: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <section aria-labelledby={id} className="flex flex-col gap-stack">
+      <div className="flex items-center justify-between gap-2 px-1">
+        <h2 id={id} className="text-heading text-foreground">
+          {title}
+        </h2>
+        {action}
+      </div>
+      {children}
+    </section>
   );
 }
 
@@ -146,7 +214,7 @@ function SaveIndicator({ state }: { state: SaveState }) {
   if (state === "idle") return null;
   const text = { saving: "Saving…", saved: "Saved", error: "Could not save" }[state];
   return (
-    <span className={["text-xs", state === "error" ? "text-destructive" : "text-muted-foreground"].join(" ")}>
+    <span className={cn("text-caption", state === "error" ? "text-destructive" : "text-muted-foreground")}>
       {text}
     </span>
   );
@@ -184,28 +252,31 @@ function ReportedNumberField({
 
   return (
     <>
-      <Input
-        key={value}
-        type="number"
-        inputMode="numeric"
-        min={bounds.min}
-        max={bounds.max}
-        aria-label={label}
-        aria-invalid={error !== null}
-        aria-describedby={error !== null ? `${label}-error` : undefined}
-        className="h-11 w-28"
-        defaultValue={value}
-        onBlur={(e) => {
-          const next = Number(e.target.value);
-          if (e.target.value.trim() === "" || !isValid(next)) {
-            e.target.value = String(value);
-            setError(`Enter a whole number of ${unit} between ${bounds.min} and ${bounds.max}.`);
-            return;
-          }
-          setError(null);
-          if (next !== value) onCommit(next);
-        }}
-      />
+      {/* Wrapped so the Field's full-width child rule doesn't stretch the input. */}
+      <div>
+        <Input
+          key={value}
+          type="number"
+          inputMode="numeric"
+          min={bounds.min}
+          max={bounds.max}
+          aria-label={label}
+          aria-invalid={error !== null}
+          aria-describedby={error !== null ? `${label}-error` : undefined}
+          className={cn(INPUT, "w-28")}
+          defaultValue={value}
+          onBlur={(e) => {
+            const next = Number(e.target.value);
+            if (e.target.value.trim() === "" || !isValid(next)) {
+              e.target.value = String(value);
+              setError(`Enter a whole number of ${unit} between ${bounds.min} and ${bounds.max}.`);
+              return;
+            }
+            setError(null);
+            if (next !== value) onCommit(next);
+          }}
+        />
+      </div>
       {error !== null ? (
         <FieldDescription id={`${label}-error`} className="text-destructive">
           {error}
@@ -222,17 +293,11 @@ function CycleBasicsCard({ profile, onSave }: { profile: Profile; onSave: (p: Pr
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>Cycle basics</CardTitle>
-        <CardAction>
-          <Badge variant="secondary">Optional</Badge>
-        </CardAction>
-      </CardHeader>
       <CardContent>
         <FieldGroup>
           <Field>
-            <FieldLabel>Typical cycle length</FieldLabel>
-            <Field orientation="horizontal">
+            <FieldLabel className={SUB_LABEL}>Typical cycle length</FieldLabel>
+            <Field orientation="horizontal" className="min-h-chip">
               <Checkbox
                 id="cycle-length-unknown"
                 checked={!known}
@@ -243,7 +308,7 @@ function CycleBasicsCard({ profile, onSave }: { profile: Profile; onSave: (p: Pr
                   })
                 }
               />
-              <FieldLabel htmlFor="cycle-length-unknown" className="font-normal">
+              <FieldLabel htmlFor="cycle-length-unknown" className={ROW_LABEL}>
                 I don&apos;t know
               </FieldLabel>
             </Field>
@@ -260,8 +325,8 @@ function CycleBasicsCard({ profile, onSave }: { profile: Profile; onSave: (p: Pr
           </Field>
 
           <Field>
-            <FieldLabel>Typical period length</FieldLabel>
-            <Field orientation="horizontal">
+            <FieldLabel className={SUB_LABEL}>Typical period length</FieldLabel>
+            <Field orientation="horizontal" className="min-h-chip">
               <Checkbox
                 id="period-length-unknown"
                 checked={!durationKnown}
@@ -272,7 +337,7 @@ function CycleBasicsCard({ profile, onSave }: { profile: Profile; onSave: (p: Pr
                   })
                 }
               />
-              <FieldLabel htmlFor="period-length-unknown" className="font-normal">
+              <FieldLabel htmlFor="period-length-unknown" className={ROW_LABEL}>
                 I don&apos;t know
               </FieldLabel>
             </Field>
@@ -289,7 +354,7 @@ function CycleBasicsCard({ profile, onSave }: { profile: Profile; onSave: (p: Pr
           </Field>
 
           <Field>
-            <FieldLabel>Regularity</FieldLabel>
+            <FieldLabel className={SUB_LABEL}>Regularity</FieldLabel>
             <ToggleGroup
               aria-label="Cycle regularity"
               value={[regularity]}
@@ -299,13 +364,16 @@ function CycleBasicsCard({ profile, onSave }: { profile: Profile; onSave: (p: Pr
               }}
               className="flex-wrap"
             >
-              <ToggleGroupItem value="consistent" className="h-11">
+              <ToggleGroupItem value="consistent" variant="chip" size="chip">
+                <ChipCheck />
                 Fairly consistent
               </ToggleGroupItem>
-              <ToggleGroupItem value="variable" className="h-11">
+              <ToggleGroupItem value="variable" variant="chip" size="chip">
+                <ChipCheck />
                 Varies a lot
               </ToggleGroupItem>
-              <ToggleGroupItem value="unknown" className="h-11">
+              <ToggleGroupItem value="unknown" variant="chip" size="chip">
+                <ChipCheck />
                 Not sure
               </ToggleGroupItem>
             </ToggleGroup>
@@ -335,13 +403,12 @@ function LifeStageCard({
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>Your situation</CardTitle>
-      </CardHeader>
       <CardContent>
-        <FieldGroup>
-          <Field orientation="horizontal" className="rounded-lg border border-border bg-muted/40 p-3">
-            <FieldLabel htmlFor="prefer-not-to-say">I&apos;d rather not answer these</FieldLabel>
+        <FieldGroup className={ROW_LIST}>
+          <Field orientation="horizontal" className="mb-2 min-h-chip rounded-xl bg-muted px-4 py-2">
+            <FieldLabel htmlFor="prefer-not-to-say" className={ROW_LABEL}>
+              I&apos;d rather not answer these
+            </FieldLabel>
             <Switch
               id="prefer-not-to-say"
               checked={s.preferNotToSay}
@@ -405,9 +472,11 @@ function LifeStageCard({
                 }
               />
               {s.hormonalMethod ? (
-                <div className="flex flex-col gap-4 pl-2">
+                <div className="flex flex-col gap-stack py-3">
                   <Field>
-                    <FieldLabel htmlFor="method-kind">Method</FieldLabel>
+                    <FieldLabel htmlFor="method-kind" className={SUB_LABEL}>
+                      Method
+                    </FieldLabel>
                     <Select
                       value={s.hormonalMethod.kind}
                       onValueChange={(kind) =>
@@ -416,7 +485,7 @@ function LifeStageCard({
                         })
                       }
                     >
-                      <SelectTrigger id="method-kind" className="h-11 w-full">
+                      <SelectTrigger id="method-kind" className="h-chip w-full rounded-xl px-3 text-body">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -507,8 +576,10 @@ function ToggleRow({
   onChange: (v: boolean) => void;
 }) {
   return (
-    <Field orientation="horizontal">
-      <FieldLabel htmlFor={id}>{label}</FieldLabel>
+    <Field orientation="horizontal" className={ROW}>
+      <FieldLabel htmlFor={id} className={ROW_LABEL}>
+        {label}
+      </FieldLabel>
       <Switch id={id} checked={checked} onCheckedChange={onChange} />
     </Field>
   );
@@ -527,13 +598,15 @@ function DateRow({
 }) {
   const id = `settings-date-${label.toLowerCase().replace(/\s+/g, "-")}`;
   return (
-    <Field>
-      <FieldLabel htmlFor={id}>{label}</FieldLabel>
+    <Field className="py-3">
+      <FieldLabel htmlFor={id} className={SUB_LABEL}>
+        {label}
+      </FieldLabel>
       <Input
         id={id}
         type="date"
         max={max}
-        className="h-11 w-full"
+        className={cn(INPUT, "w-full")}
         value={value}
         onChange={(e) => {
           if (!e.target.value) return onChange(null);
@@ -556,14 +629,11 @@ function FeaturesCard({ profile, onSave }: { profile: Profile; onSave: (p: Profi
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>Features</CardTitle>
-      </CardHeader>
       <CardContent>
-        <FieldGroup>
-          <Field orientation="horizontal">
+        <FieldGroup className={ROW_LIST}>
+          <Field orientation="horizontal" className={cn(ROW, "pb-3")}>
             <FieldContent>
-              <FieldLabel htmlFor="feature-fertility">Fertility window estimates</FieldLabel>
+              <FieldLabel htmlFor="feature-fertility" className={ROW_LABEL}>Fertility window estimates</FieldLabel>
               <FieldDescription>
                 {settings.fertilityEnabled
                   ? FERTILITY_DISCLAIMER
@@ -577,8 +647,8 @@ function FeaturesCard({ profile, onSave }: { profile: Profile; onSave: (p: Profi
             />
           </Field>
 
-          <Field orientation="horizontal">
-            <FieldLabel htmlFor="feature-tierc">
+          <Field orientation="horizontal" className={cn(ROW, "py-3")}>
+            <FieldLabel htmlFor="feature-tierc" className={ROW_LABEL}>
               Extra symptom tracking (sleep, exercise, focus, libido)
             </FieldLabel>
             <Switch
@@ -588,9 +658,9 @@ function FeaturesCard({ profile, onSave }: { profile: Profile; onSave: (p: Profi
             />
           </Field>
 
-          <Field orientation="horizontal">
+          <Field orientation="horizontal" className={cn(ROW, "pt-3")}>
             <FieldContent>
-              <FieldLabel htmlFor="feature-health-awareness">Health awareness notes</FieldLabel>
+              <FieldLabel htmlFor="feature-health-awareness" className={ROW_LABEL}>Health awareness notes</FieldLabel>
               <FieldDescription>
                 Occasional notes that quote a named guideline (e.g. ACOG, NHS) when what
                 you&apos;ve recorded matches something they suggest discussing with a
@@ -609,34 +679,16 @@ function FeaturesCard({ profile, onSave }: { profile: Profile; onSave: (p: Profi
   );
 }
 
-function DataCard({ onDeleteClick }: { onDeleteClick: () => void }) {
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Your data</CardTitle>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-3">
-        <Button variant="outline" render={<Link href="/report" />}>
-          <FileTextIcon data-icon="inline-start" />
-          Export or build a report
-        </Button>
-        <Button variant="destructive" onClick={onDeleteClick}>
-          <Trash2Icon data-icon="inline-start" />
-          Permanently delete all data
-        </Button>
-      </CardContent>
-    </Card>
-  );
-}
-
 function PrivacyCard() {
   return (
-    <Card>
+    <Card className="gap-stack">
       <CardHeader>
-        <CardTitle>Privacy</CardTitle>
+        <CardTitle role="heading" aria-level={3} className="text-body font-semibold">
+          Privacy
+        </CardTitle>
       </CardHeader>
       <CardContent>
-        <p className="whitespace-pre-line text-sm text-foreground">{PRIVACY_STATEMENT}</p>
+        <p className="whitespace-pre-line text-label font-normal text-card-foreground text-pretty">{PRIVACY_STATEMENT}</p>
       </CardContent>
     </Card>
   );

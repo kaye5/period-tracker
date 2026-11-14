@@ -31,13 +31,13 @@ const ROW_HEIGHT = 22;
 const MARGIN = { top: 10, right: 16, bottom: 24, left: 130 };
 
 const chartConfig = {
-  symptom: { label: "Symptom" },
+  symptom: { label: "Symptom", color: "var(--chart-1)" },
 } satisfies ChartConfig;
 
 function SymptomDot(props: ScatterShapeProps) {
   const { cx, cy } = props;
   if (cx == null || cy == null) return null;
-  return <circle cx={cx} cy={cy} r={4} fill="var(--chart-1)" />;
+  return <circle cx={cx} cy={cy} r={4} fill="var(--color-symptom)" />;
 }
 
 /** "Symptom timeline" (SPEC.md's U4 brief). Calendar-time rows, one per symptom, with a
@@ -101,7 +101,7 @@ export function SymptomTimelineChart({ dayLogs, symptoms }: SymptomTimelineChart
       emptyMessage="Symptom timeline will appear here once you've logged a symptom."
     >
       <div style={{ minWidth: `${width}px` }}>
-        <ChartContainer config={chartConfig} className="aspect-auto w-full" style={{ height: `${height}px` }}>
+        <ChartContainer config={chartConfig} className="aspect-auto w-full text-caption" style={{ height: `${height}px` }}>
           <ScatterChart margin={{ top: MARGIN.top, right: MARGIN.right, bottom: MARGIN.bottom, left: MARGIN.left }}>
             <CartesianGrid vertical={false} />
             <XAxis
@@ -129,7 +129,7 @@ export function SymptomTimelineChart({ dayLogs, symptoms }: SymptomTimelineChart
                 key={i}
                 x1={xForDate(band.start)}
                 x2={xForDate(band.end) + 1}
-                fill="var(--chart-1)"
+                fill="var(--color-symptom)"
                 fillOpacity={0.1}
                 strokeOpacity={0}
               />

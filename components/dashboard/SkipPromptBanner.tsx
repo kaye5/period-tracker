@@ -9,7 +9,6 @@
  */
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import type { CivilDate } from "@/lib/date/civil";
 import type { SkipPromptItem } from "@/lib/engine";
@@ -52,21 +51,20 @@ export function SkipPromptBanner({ item, today }: SkipPromptBannerProps) {
   const dateText = formatLongDate(item.prompt.suggestedDate, referenceYear);
 
   return (
-    <Card className="border-l-4 border-l-warning" role="status">
-      <CardContent className="flex flex-col gap-2">
-        <p className="text-sm text-foreground">{missedPeriodPrompt(dateText)}</p>
-        {error ? (
-          <p className="text-sm text-destructive">That didn&apos;t save. Please try again.</p>
-        ) : null}
-      </CardContent>
-      <CardFooter className="flex-wrap gap-2">
+    <section role="status" className="relative flex flex-col gap-stack stage p-card">
+      <span aria-hidden className="absolute inset-y-card left-0 w-1 rounded-r-full bg-warning" />
+      <p className="text-body text-card-foreground text-pretty">{missedPeriodPrompt(dateText)}</p>
+      {error ? (
+        <p className="text-label font-normal text-destructive">That didn&apos;t save. Please try again.</p>
+      ) : null}
+      <div className="flex flex-wrap gap-2 border-t border-border pt-stack">
         <Button disabled={busy} onClick={() => answer(true)}>
           {SKIP_PROMPT_YES_LABEL}
         </Button>
         <Button variant="outline" disabled={busy} onClick={() => answer(false)}>
           {SKIP_PROMPT_NO_LABEL}
         </Button>
-      </CardFooter>
-    </Card>
+      </div>
+    </section>
   );
 }
