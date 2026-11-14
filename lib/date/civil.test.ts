@@ -3,6 +3,7 @@ import {
   addDays,
   compare,
   diffDays,
+  formatInstant,
   isValid,
   max,
   min,
@@ -261,5 +262,38 @@ describe("monthGrid", () => {
     for (let i = 1; i < flat.length; i++) {
       expect(diffDays(flat[i - 1], flat[i])).toBe(1);
     }
+  });
+});
+
+describe("formatInstant", () => {
+  const instant = Date.UTC(2026, 10, 13, 23, 30);
+  const cases: Array<[string, number, string]> = [
+    ["Asia/Bangkok", instant, "2026-11-14T06:30:00.000+07:00"],
+    ["America/New_York", instant, "2026-11-13T18:30:00.000-05:00"],
+    ["Asia/Kathmandu", instant, "2026-11-14T05:15:00.000+05:45"],
+    ["UTC", instant, "2026-11-13T23:30:00.000+00:00"],
+    // Just after the 2026-03-08 spring-forward: 03:30 EDT (UTC-4).
+    ["America/New_York", Date.UTC(2026, 2, 8, 7, 30), "2026-03-08T03:30:00.000-04:00"],
+  ];
+
+  it.each(cases)("%s at %i renders local wall-clock time with its offset", (tz, ms, local) => {
+    expect(formatInstant(ms, tz).local).toBe(local);
+  });
+
+  it.each(cases)("%s at %i: todayInZone agrees with the date part of local", (tz, ms) => {
+    expect(todayInZone(tz, ms)).toBe(formatInstant(ms, tz).local.slice(0, 10));
+  });
+
+  it("renders utc as ISO 8601 with Z, and UTC local as +00:00 (never Z)", () => {
+    expect(formatInstant(instant, "UTC")).toEqual({
+      utc: "2026-11-13T23:30:00.000Z",
+      local: "2026-11-13T23:30:00.000+00:00",
+    });
+  });
+
+  it("keeps milliseconds and renders midnight as 00, not 24", () => {
+    expect(formatInstant(Date.UTC(2026, 0, 1, 17, 0, 0, 7), "Asia/Bangkok").local).toBe(
+      "2026-01-02T00:00:00.007+07:00",
+    );
   });
 });

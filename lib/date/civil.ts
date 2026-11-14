@@ -139,6 +139,37 @@ export function todayInZone(tz: string, epochMs: number): CivilDate {
   return parseCivil(formatted);
 }
 
+/**
+ * An instant (epoch ms) as `{ utc, local }`: `utc` is ISO 8601 with `Z`; `local` is the
+ * wall-clock time in IANA zone `tz` with its numeric offset, `YYYY-MM-DDTHH:mm:ss.SSS±HH:MM`
+ * (UTC renders `+00:00`, never `Z`). Offsets come from ICU via Intl, so DST and fractional
+ * offsets (Asia/Kathmandu +05:45) are exact. Throws RangeError on an invalid `tz`.
+ */
+export function formatInstant(epochMs: number, tz: string): { utc: string; local: string } {
+  const date = new Date(epochMs);
+  const p: Record<string, string> = {};
+  for (const { type, value } of new Intl.DateTimeFormat("en-US", {
+    timeZone: tz,
+    hourCycle: "h23",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    fractionalSecondDigits: 3,
+    timeZoneName: "longOffset",
+  }).formatToParts(date)) {
+    p[type] = value;
+  }
+  // longOffset is "GMT+07:00", or bare "GMT" for a zero offset.
+  const offset = p.timeZoneName === "GMT" ? "+00:00" : p.timeZoneName.slice(3);
+  return {
+    utc: date.toISOString(),
+    local: `${p.year}-${p.month}-${p.day}T${p.hour}:${p.minute}:${p.second}.${p.fractionalSecond}${offset}`,
+  };
+}
+
 /** All civil dates from `start` to `end` inclusive. Empty array if `end` precedes `start`. */
 export function rangeInclusive(start: CivilDate, end: CivilDate): CivilDate[] {
   const n = diffDays(start, end);
