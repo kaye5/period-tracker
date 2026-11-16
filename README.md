@@ -124,8 +124,9 @@ lets an AI client such as Claude Code read your cycle data and log new entries, 
 no delete tools. It is **off unless `MCP_TOKEN` is set**: with no token it returns 404. See
 DEC-016 and [`docs/MCP-SPEC.md`](docs/MCP-SPEC.md).
 
-1. Generate a token and set it as `MCP_TOKEN` in `.env.local`, or in the Vercel project's
-   environment variables for a deploy:
+1. Generate a token (at least 32 characters; a shorter one leaves the endpoint off) and set
+   it as `MCP_TOKEN` in `.env.local`, or in the Vercel project's environment variables for a
+   deploy:
 
    ```bash
    openssl rand -base64 32

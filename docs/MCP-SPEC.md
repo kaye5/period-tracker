@@ -93,7 +93,7 @@ by MCP so a client can say when something was recorded.
 
 ```
 AI client ──HTTP POST /api/mcp──▶ app/api/mcp/route.ts
-  (Authorization: Bearer …)         1. MCP_TOKEN unset → 404 (endpoint off)
+  (Authorization: Bearer …)         1. MCP_TOKEN unset or < 32 chars → 404 (endpoint off)
                                     2. bad/missing token → 401
                                     3. new McpServer per request (stateless) + transport
                                          │
@@ -267,7 +267,7 @@ Inspector:    npx @modelcontextprotocol/inspector   → Streamable HTTP, http://
 Client (Claude Code):
   claude mcp add --transport http cycle https://<host>/api/mcp \
     --header "Authorization: Bearer <MCP_TOKEN>"
-Token:        openssl rand -base64 32   → MCP_TOKEN in .env.local / hosting env
+Token:        openssl rand -base64 32   → MCP_TOKEN in .env.local / hosting env (at least 32 characters)
 ```
 
 ## Project structure
