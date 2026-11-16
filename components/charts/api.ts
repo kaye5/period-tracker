@@ -121,9 +121,10 @@ export function clientToday(): CivilDate {
 }
 
 /** The `tz` cookie the server also reads (so a zone picked in Settings applies to client
- * writes too), else the browser's own zone. */
+ * writes too), else the browser's own zone. During server pre-render (no `document`) it
+ * falls back like before; callers only render what depends on it once client data lands. */
 function clientTimeZone(): string {
-  const raw = cookieValue(document.cookie, TZ_COOKIE);
+  const raw = typeof document === "undefined" ? undefined : cookieValue(document.cookie, TZ_COOKIE);
   let tz: string | undefined;
   try {
     tz = raw === undefined ? undefined : decodeURIComponent(raw);
