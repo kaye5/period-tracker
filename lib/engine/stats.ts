@@ -440,8 +440,8 @@ function computeSymptomsByCycleDay(
 // Moods by cycle day — descriptive counts only, same windows as symptoms
 // ============================================================================
 
-/** `MoodId` declaration order (lib/domain/types.ts). */
-const ALL_MOODS: readonly MoodId[] = [
+/** `MoodId` declaration order (lib/domain/types.ts); stats.test.ts checks it against `moodIdSchema`. */
+export const ALL_MOODS: readonly MoodId[] = [
   "calm",
   "happy",
   "energetic",

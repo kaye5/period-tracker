@@ -3,7 +3,9 @@ import { describe, expect, it } from "vitest";
 import { addDays, parseCivil, type CivilDate } from "@/lib/date/civil";
 import { COVERAGE_MIN_CYCLE, WINDOW } from "@/lib/engine/constants";
 import type { BleedingEpisode, Cycle, CycleStatus, DayLog, SymptomId } from "@/lib/domain/types";
+import { moodIdSchema } from "@/lib/domain/schema";
 import {
+  ALL_MOODS,
   MIN_USABLE_CYCLES_FOR_FIGO_RANGE,
   MIN_USABLE_CYCLES_FOR_REGULARITY_BAND,
   REGULARITY_TYPICAL_VARIATION_MAX_DAYS,
@@ -551,5 +553,11 @@ describe("predictedVsActualSeries", () => {
     const series = predictedVsActualSeries([resolvedFromB]);
     expect(series[0].actualStart).toBe(d("2026-05-30"));
     expect(series[0].signedErrorDays).toBe(1);
+  });
+});
+
+describe("ALL_MOODS", () => {
+  it("lists exactly the schema's moods, in the same order", () => {
+    expect(ALL_MOODS).toEqual(moodIdSchema.options);
   });
 });
