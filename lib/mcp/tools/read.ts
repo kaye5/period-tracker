@@ -1,8 +1,10 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { z } from "zod";
 import type { CivilDate } from "@/lib/date/civil";
 import { loadCycleData } from "@/lib/cycleView/load";
 import { envelope, resolveMcpTimeZone, timeContext, toolError, toolResult } from "@/lib/mcp/envelope";
-import { civilDate, envelopeOutput, timeZone } from "@/lib/mcp/schemas";
+import { civilDate, envelopeOutput, moodId, symptomId, timeZone } from "@/lib/mcp/schemas";
+import { buildPatternData } from "@/lib/mcp/patterns";
 import {
   historyRangeError,
   presentCycleStats,
@@ -71,5 +73,38 @@ export function registerReadTools(server: McpServer): void {
       if (error) return toolError(error);
       return runReadTool(tz, (view) => presentHistory(view, from as CivilDate, to as CivilDate));
     },
+  );
+
+  server.registerTool(
+    "get_pattern_data",
+    {
+      title: "Pattern data",
+      description: [
+        "The user's own symptom and mood counts by cycle day (before the next period, during the period, and the days after it), each offset already projected onto calendar dates — the data behind forecasts like \"you usually log irritability in the week before your period\".",
+        "When using it: (1) Base every forecast on these counts and quote them (e.g. \"5 of 7 logged days, 8 cycles\").",
+        "(2) Always give dates as ranges (`upcoming`); the next period date is itself an estimate. `currentPeriod` is an exact date only because that period has already started.",
+        "(3) If basedOnCycles < minimumCyclesForPatterns, or knownDays is small, say the pattern is weak.",
+        "(4) Give no medical explanations (hormones, diagnoses, treatments) and no health advice.",
+        "(5) Say it comes from the user's own records.",
+        TIME_ZONE_NOTE,
+      ].join(" "),
+      inputSchema: {
+        items: z
+          .array(z.union([symptomId, moodId]))
+          .optional()
+          .describe("Only these symptoms and/or moods; all when omitted."),
+        minKnownDays: z
+          .number()
+          .int()
+          .min(1)
+          .default(1)
+          .describe("Leave out cycle days with fewer known (logged) days than this."),
+        timeZone,
+      },
+      outputSchema: envelopeOutput,
+      annotations: { readOnlyHint: true },
+    },
+    ({ items, minKnownDays, timeZone: tz }) =>
+      runReadTool(tz, ({ output, dayLogs, today }) => buildPatternData({ output, dayLogs, today, items, minKnownDays })),
   );
 }

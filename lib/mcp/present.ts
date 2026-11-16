@@ -24,7 +24,8 @@ export interface CycleView {
 
 export const NEXT_PERIOD_NOTE = "This is an estimate. Always present it as a range, never a single date.";
 
-function ongoingPeriod({ output, today, logsByDate }: CycleView) {
+/** The period in progress, by Today's rule (`quickPeriodStatus`, incl. its staleness bound). */
+export function ongoingPeriod({ output, today, logsByDate }: Pick<CycleView, "output" | "today" | "logsByDate">) {
   const status = quickPeriodStatus(logsByDate.get(today), output.cycles, today);
   if (status.kind === "none") return null;
   const lastRecordedDay = status.kind === "today" ? today : status.lastPeriodDay;
