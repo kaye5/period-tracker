@@ -90,6 +90,14 @@ plain, not marketing.
    sends you to onboarding. (`pnpm db:reset` tears the local database down and re-runs
    migrate + seed from scratch.)
 
+## Upgrading or deploying
+
+**Run `pnpm db:migrate` against the deploy database before deploying a new version**, with
+`DATABASE_URL` (and `DATABASE_SSL=true` for TiDB Cloud) pointing at it. This version adds
+migration `0002` (`profile.time_zone` and `day_logs.updated_at`). Both columns are additive and
+nullable, so the version already running keeps working after you migrate, while this version
+needs them from its first request.
+
 ## Checks
 
 ```bash
@@ -123,8 +131,7 @@ DEC-016 and [`docs/MCP-SPEC.md`](docs/MCP-SPEC.md).
    openssl rand -base64 32
    ```
 
-2. The deploy database needs migration `0002`, which adds `profile.time_zone` and
-   `day_logs.updated_at`. Run `pnpm db:migrate` with `DATABASE_URL` pointing at it.
+2. Make sure the deploy database is migrated first (see "Upgrading or deploying" above).
 
 3. Connect Claude Code:
 
