@@ -39,7 +39,7 @@ export default defineConfig({
           // One worker, one file at a time — the shared MySQL cannot be written by two
           // integration files concurrently without deadlocking / cross-wiping.
           pool: "forks",
-          poolOptions: { forks: { singleFork: true } },
+          fileParallelism: false,
         },
       },
     ],
