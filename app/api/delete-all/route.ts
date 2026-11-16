@@ -8,6 +8,7 @@ import { deleteCalibrationState } from "@/lib/repo/calibration";
 import { deleteSecurity } from "@/lib/repo/security";
 import { handleUnexpected, jsonError } from "@/app/api/_lib/http";
 import { requireApiUnlock } from "@/lib/security/guard";
+import { TZ_COOKIE } from "@/lib/time/userTimeZone";
 
 const CONFIRM_TOKEN = "DELETE_ALL_DATA";
 const bodySchema = z.object({ confirm: z.literal(CONFIRM_TOKEN) });
@@ -41,7 +42,7 @@ export async function POST(request: NextRequest) {
     // Wipe the screen-lock too, so a full delete leaves no configured PIN behind.
     await deleteSecurity();
 
-    return NextResponse.json({
+    const res = NextResponse.json({
       deleted: {
         dayLogs: dayLogsDeleted,
         predictions: predictionsDeleted,
@@ -50,6 +51,10 @@ export async function POST(request: NextRequest) {
         calibration: calibrationDeleted,
       },
     });
+    // The profile (and its time_zone) is gone: drop the cookie too, so TimeZoneSync stores the
+    // zone again once onboarding recreates the profile.
+    res.cookies.delete(TZ_COOKIE);
+    return res;
   } catch (err) {
     if (err instanceof SyntaxError) {
       return jsonError(400, `Request body must be JSON: { "confirm": "${CONFIRM_TOKEN}" }`);

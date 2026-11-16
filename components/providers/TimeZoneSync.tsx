@@ -1,14 +1,17 @@
 "use client";
 
 import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { timeZoneCookieMatches, TZ_COOKIE } from "@/lib/time/userTimeZone";
 
-/** Keeps the `tz` cookie (and profile.time_zone) in step with the browser's zone, then
- * refreshes so server-rendered "today" uses it (MCP-SPEC Part A). Renders nothing; any
- * failure is ignored and the app keeps the previous zone. */
+/** Keeps the `tz` cookie and profile.time_zone in step with the browser's zone, then
+ * refreshes so server-rendered "today" uses it (MCP-SPEC Part A). The server sets the cookie
+ * only once the zone is stored (unlocked, profile exists), so re-checking on every navigation
+ * makes the sync land right after unlock or onboarding. Renders nothing; any failure is
+ * ignored and the app keeps the previous zone. */
 export function TimeZoneSync() {
   const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
     const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -24,11 +27,12 @@ export function TimeZoneSync() {
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ timeZone }),
     })
-      .then((res) => {
-        if (res.ok) router.refresh();
+      .then((res) => (res.ok ? res.json() : null))
+      .then((body: { stored?: unknown } | null) => {
+        if (body?.stored === true) router.refresh();
       })
       .catch(() => {});
-  }, [router]);
+  }, [router, pathname]);
 
   return null;
 }

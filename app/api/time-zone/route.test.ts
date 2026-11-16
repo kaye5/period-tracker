@@ -2,9 +2,11 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { NextResponse } from "next/server";
 
 const requireApiUnlock = vi.fn();
+const getProfile = vi.fn();
 const setUserTimeZone = vi.fn();
 vi.mock("@/lib/security/guard", () => ({ requireApiUnlock: () => requireApiUnlock() }));
 vi.mock("@/lib/repo/profile", () => ({
+  getProfile: () => getProfile(),
   setUserTimeZone: (tz: string) => setUserTimeZone(tz),
 }));
 
@@ -22,6 +24,7 @@ function post(body: unknown) {
 
 beforeEach(() => {
   requireApiUnlock.mockReset().mockResolvedValue(null);
+  getProfile.mockReset().mockResolvedValue({ state: {}, settings: {} });
   setUserTimeZone.mockReset().mockResolvedValue(true);
 });
 
@@ -37,7 +40,7 @@ describe("POST /api/time-zone", () => {
     },
   );
 
-  it("canonicalises, sets the tz cookie and stores the zone when unlocked", async () => {
+  it("canonicalises, stores the zone and sets the tz cookie when unlocked with a profile", async () => {
     const res = await post({ timeZone: "asia/bangkok" });
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({ timeZone: "Asia/Bangkok", stored: true });
@@ -50,12 +53,21 @@ describe("POST /api/time-zone", () => {
     expect(setUserTimeZone).toHaveBeenCalledWith("Asia/Bangkok");
   });
 
-  it("still sets the cookie but does not store the zone when locked", async () => {
+  it("neither stores the zone nor sets the cookie when locked", async () => {
     requireApiUnlock.mockResolvedValue(NextResponse.json({ error: "Locked" }, { status: 401 }));
     const res = await post({ timeZone: "Europe/Berlin" });
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({ timeZone: "Europe/Berlin", stored: false });
-    expect(res.headers.get("set-cookie")).toMatch(/^tz=Europe/);
+    expect(res.headers.get("set-cookie")).toBeNull();
+    expect(setUserTimeZone).not.toHaveBeenCalled();
+  });
+
+  it("neither stores the zone nor sets the cookie before onboarding (no profile)", async () => {
+    getProfile.mockResolvedValue(null);
+    const res = await post({ timeZone: "Europe/Berlin" });
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ timeZone: "Europe/Berlin", stored: false });
+    expect(res.headers.get("set-cookie")).toBeNull();
     expect(setUserTimeZone).not.toHaveBeenCalled();
   });
 });
