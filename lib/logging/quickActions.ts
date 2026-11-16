@@ -1,10 +1,10 @@
 /**
- * Pure logic behind Today's quick-log card (Daylight redesign): one tap = one change to
+ * Pure logic behind Today's quick-log card (Daylight redesign) and the MCP write tools: one tap = one change to
  * one day's DayLog, merged onto whatever was already recorded for that day and POSTed
  * through the same /api/day-logs upsert the full form uses. Nothing here does I/O, so it
  * is unit-testable directly (SPEC.md R10).
  *
- * R7 discipline, as in calendar/quickPeriodLog.ts: a quick tap only asserts the one fact
+ * R7 discipline, as in components/calendar/quickPeriodLog.ts: a quick tap only asserts the one fact
  * it names and keeps every other recorded field. A positive assertion (a period day, a
  * mood, a symptom) clears `nothingToReport`, since a day cannot be both a recorded true
  * negative and carry that fact.
@@ -20,8 +20,11 @@ export type QuickAction =
   /** The day is (on) / is not (off) the last day of the period — closes the episode. */
   | { kind: "lastDay"; on: boolean }
   | { kind: "flow"; flow: FlowLevel | undefined }
-  | { kind: "mood"; mood: MoodId }
-  | { kind: "symptom"; symptom: SymptomId }
+  /** `on` undefined toggles (Today's chips); true/false ensures present/absent (idempotent). */
+  | { kind: "mood"; mood: MoodId; on?: boolean }
+  | { kind: "symptom"; symptom: SymptomId; on?: boolean }
+  /** The day is (on) / is not (off) a spotting day. Spotting never carries flow or a boundary. */
+  | { kind: "spotting"; on: boolean }
   | { kind: "nothing" };
 
 export function emptyDayLog(date: CivilDate, today: CivilDate): DayLog {
@@ -55,15 +58,26 @@ export function applyQuickAction(
       return action.on
         ? { ...positive, bleeding: "menstrual", periodBoundary: "end" }
         : { ...base, periodBoundary: undefined };
+    case "spotting":
+      return action.on
+        ? { ...positive, bleeding: "spotting", flow: undefined, periodBoundary: undefined }
+        : { ...base, bleeding: "none", flow: undefined, periodBoundary: undefined };
     case "flow":
       return { ...positive, bleeding: "menstrual", flow: action.flow };
     case "mood": {
+      if (alreadySo(base.mood ?? [], action.mood, action.on)) return base;
       const mood = toggleMember(base.mood ?? [], action.mood);
       return { ...positive, mood: mood.length ? mood : undefined };
     }
     case "symptom":
+      if (alreadySo(base.symptoms, action.symptom, action.on)) return base;
       return { ...positive, symptoms: toggleMember(base.symptoms, action.symptom) };
   }
+}
+
+/** An explicit add/remove (`on` set) that would change nothing. */
+function alreadySo<T>(list: readonly T[], value: T, on: boolean | undefined): boolean {
+  return on !== undefined && list.includes(value) === on;
 }
 
 /**

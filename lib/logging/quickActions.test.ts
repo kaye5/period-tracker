@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { parseCivil } from "@/lib/date/civil";
 import type { Cycle, DayLog } from "@/lib/domain/types";
-import { applyQuickAction, quickPeriodStatus, quickSymptoms } from "./quickLog";
+import { applyQuickAction, quickPeriodStatus, quickSymptoms } from "./quickActions";
 
 const TODAY = parseCivil("2026-11-14");
 const YESTERDAY = parseCivil("2026-11-13");
@@ -71,6 +71,38 @@ describe("applyQuickAction", () => {
   it("last day marks the end boundary on a period day", () => {
     const out = applyQuickAction(undefined, { kind: "lastDay", on: true }, YESTERDAY, TODAY);
     expect(out).toMatchObject({ date: YESTERDAY, bleeding: "menstrual", periodBoundary: "end" });
+  });
+
+  it("explicit add/remove of moods and symptoms is idempotent", () => {
+    const added = applyQuickAction(rich, { kind: "mood", mood: "calm", on: true }, TODAY, TODAY);
+    expect(added.mood).toEqual(["calm"]);
+    expect(applyQuickAction(added, { kind: "mood", mood: "calm", on: true }, TODAY, TODAY)).toEqual(added);
+    const removed = applyQuickAction(added, { kind: "mood", mood: "calm", on: false }, TODAY, TODAY);
+    expect(removed.mood).toBeUndefined();
+    expect(applyQuickAction(removed, { kind: "mood", mood: "calm", on: false }, TODAY, TODAY)).toEqual(removed);
+
+    expect(applyQuickAction(rich, { kind: "symptom", symptom: "headache", on: true }, TODAY, TODAY)).toEqual(rich);
+    expect(applyQuickAction(rich, { kind: "symptom", symptom: "acne", on: false }, TODAY, TODAY)).toEqual(rich);
+    expect(applyQuickAction(rich, { kind: "symptom", symptom: "acne", on: true }, TODAY, TODAY).symptoms).toEqual([
+      "headache",
+      "acne",
+    ]);
+    expect(applyQuickAction(rich, { kind: "symptom", symptom: "headache", on: false }, TODAY, TODAY).symptoms).toEqual([]);
+  });
+
+  it("spotting on a period day clears flow and boundary, keeps notes and symptoms", () => {
+    const period: DayLog = { ...rich, bleeding: "menstrual", flow: "heavy", periodBoundary: "start", nothingToReport: undefined };
+    const out = applyQuickAction(period, { kind: "spotting", on: true }, TODAY, TODAY);
+    expect(out).toMatchObject({ bleeding: "spotting", notes: "keep me", symptoms: ["headache"], pain: rich.pain });
+    expect(out.flow).toBeUndefined();
+    expect(out.periodBoundary).toBeUndefined();
+    expect(applyQuickAction(rich, { kind: "spotting", on: true }, TODAY, TODAY).nothingToReport).toBeUndefined();
+  });
+
+  it("spotting off sets bleeding back to none and keeps the rest", () => {
+    const spotting = applyQuickAction(rich, { kind: "spotting", on: true }, TODAY, TODAY);
+    const off = applyQuickAction(spotting, { kind: "spotting", on: false }, TODAY, TODAY);
+    expect(off).toMatchObject({ bleeding: "none", flow: undefined, periodBoundary: undefined, notes: "keep me" });
   });
 
   it("nothing-to-report replaces the day with a true negative", () => {

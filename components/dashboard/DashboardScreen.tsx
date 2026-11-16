@@ -26,7 +26,7 @@ import { selectPersonalPatternInsight } from "./insightSelection";
 import { EMPTY_TIER, ONE_CYCLE_TIER, TWO_CYCLES_TIER, completedCyclesUsed } from "./copy";
 import { formatDateRange } from "./format";
 import { buildCycleStrip } from "./cycleStrip";
-import { quickPeriodStatus, quickSymptoms } from "./quickLog";
+import { quickPeriodStatus, quickSymptoms } from "@/lib/logging/quickActions";
 import { EmptyStateCard } from "./EmptyStateCard";
 import { SkipPromptBanner } from "./SkipPromptBanner";
 import { PrimaryCard } from "./PrimaryCard";

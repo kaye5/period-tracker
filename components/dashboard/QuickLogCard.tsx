@@ -24,7 +24,7 @@ import { FLOW_LEVEL_OPTIONS, MOOD_OPTIONS } from "@/components/daylog/daylogOpti
 import { useDayLog } from "@/components/daylog/DayLogDialogProvider";
 import { capitalizedSymptomLabel } from "@/lib/copy/insights";
 import { formatMonthDay } from "./format";
-import { applyQuickAction, type QuickAction, type QuickPeriodStatus } from "./quickLog";
+import { applyQuickAction, type QuickAction, type QuickPeriodStatus } from "@/lib/logging/quickActions";
 
 export interface QuickLogCardProps {
   today: CivilDate;
