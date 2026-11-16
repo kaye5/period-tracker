@@ -22,10 +22,10 @@ that database runs**:
   symptoms, and notes you record **leave this device** and are stored on that provider's
   servers.
 
-Either way, this app adds no protection of its own, has no app lock, and keeps the database
-credentials in plain text in `.env.local` on your machine. For a hosted database, your
-data's protection depends on that provider and your account with them (use a strong
-password, enable 2FA where offered, restrict network access).
+Either way, this app adds no protection of its own (its optional PIN only hides its screens),
+and it keeps the database credentials in plain text in `.env.local` on your machine. For a
+hosted database, your data's protection depends on that provider and your account with them
+(use a strong password, enable 2FA where offered, restrict network access).
 
 Read [`docs/PRIVACY.md`](docs/PRIVACY.md) in full before recording anything real. It is
 plain, not marketing.
@@ -108,6 +108,33 @@ every table — so a guard refuses to run it against any database whose name doe
 The test suite covers the date arithmetic, statistical primitives, the cycle/prediction/
 insight/health engines (including the research invariants), the relational repo mappings,
 and the UI helper logic.
+
+## MCP (AI client access)
+
+`/api/mcp` is a [Model Context Protocol](https://modelcontextprotocol.io) endpoint. It
+lets an AI client such as Claude Code read your cycle data and log new entries, and it has
+no delete tools. It is **off unless `MCP_TOKEN` is set**: with no token it returns 404. See
+DEC-016 and [`docs/MCP-SPEC.md`](docs/MCP-SPEC.md).
+
+1. Generate a token and set it as `MCP_TOKEN` in `.env.local`, or in the Vercel project's
+   environment variables for a deploy:
+
+   ```bash
+   openssl rand -base64 32
+   ```
+
+2. The deploy database needs migration `0002`, which adds `profile.time_zone` and
+   `day_logs.updated_at`. Run `pnpm db:migrate` with `DATABASE_URL` pointing at it.
+
+3. Connect Claude Code:
+
+   ```bash
+   claude mcp add --transport http cycle https://<host>/api/mcp \
+     --header "Authorization: Bearer <MCP_TOKEN>"
+   ```
+
+Anything the client reads through the endpoint is sent to that AI client's provider. Treat
+the token like a password, and remove `MCP_TOKEN` to switch the endpoint off.
 
 ## What this app does not do
 

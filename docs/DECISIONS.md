@@ -364,3 +364,43 @@ pure helpers in `components/charts/transforms.ts` (SPEC §4.1).
 SPEC §0 (see the Charts note added beneath that table).
 
 **Status:** Accepted, current.
+
+---
+
+## DEC-016 — MCP endpoint with a fixed bearer token; UTC server with civil-date days
+
+**Decision (a), MCP endpoint:** The app serves a Model Context Protocol endpoint at
+`/api/mcp` so an AI client (Claude Code, Cursor, …) can read the user's data and log new
+entries. It is on only when the `MCP_TOKEN` environment variable is set. With no token,
+`/api/mcp` returns 404. A request with a missing or wrong `Authorization: Bearer` token gets
+401. The transport is Streamable HTTP, stateless, run inside the existing Next.js route
+handler, with a new server per request and no session or background process, so it works on
+serverless hosting. The only new dependency is `@modelcontextprotocol/sdk`. The endpoint has
+read tools and write tools. Writes reuse `dayLogSchema` and `upsertDayLog`, and reads reuse
+`computeEverything`. There are **no delete or clear tools**, and the PIN, security and
+delete-all endpoints are not exposed. OAuth, which claude.ai custom connectors need, is out
+of scope.
+
+**Decision (b), time-zone model:** The server and the database run in UTC, and no code
+depends on the host's time zone. Calendar days (periods, log days, decisions, predictions)
+stay civil `YYYY-MM-DD` dates and are never turned into instants. Instants are UTC, for
+example the new `day_logs.updated_at` (`DATETIME(3)`, mysql2 `timezone: "Z"`). "Today" comes
+from the user's zone, resolved in this order: the MCP tool's `timeZone` input (MCP only),
+then the `tz` cookie set by the browser, then `profile.time_zone`, then UTC, which is flagged
+as a fallback. Every MCP response carries a time envelope that states the zone it used.
+Migration `0002` adds `profile.time_zone` and `day_logs.updated_at`, and both changes are
+additive.
+
+**Why:** The user asked for AI-client access to their own tracker. A fixed token is the
+smallest credential that works for a single-user app. Part (b) fixes a real bug: on UTC
+hosting, the server's "today" and the browser's "today" disagreed for part of every day, so a
+quick-log tap could save to the wrong day.
+
+**Privacy delta:** Anyone who holds the token can read everything and add entries. Data read
+through the endpoint goes to the connected assistant's provider. The PIN screen lock does not
+apply to the endpoint, because the token is its own credential. This is stated in
+`PRIVACY_STATEMENT` and `docs/PRIVACY.md`.
+
+**Full design:** `docs/MCP-SPEC.md`.
+
+**Status:** Accepted, current.

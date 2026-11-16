@@ -28,9 +28,17 @@ so there is exactly one place this claim is written and both surfaces quote it.
 > machine's files can connect to your database from anywhere its network rules allow. If
 > you use a hosted database, its protection depends on that provider and your account with
 > them, not on this app — use a strong, unique password, turn on two-factor authentication
-> where it is offered, and restrict network access. This app has no lock screen, sends no
-> analytics or telemetry, and loads no third-party script, font, or image. You can export
-> everything you've recorded, or permanently delete it, at any time from Settings.
+> where it is offered, and restrict network access. This app's optional PIN only hides its
+> screens in this browser; it adds no protection to your data or the database. This app
+> sends no analytics or telemetry, and loads no third-party script, font, or image. You can
+> export everything you've recorded, or permanently delete it, at any time from Settings.
+>
+> If you set an access token for this app's MCP endpoint (MCP_TOKEN), an AI assistant you
+> connect — such as Claude or Cursor — can read everything you've recorded and add new
+> entries. Whatever it reads is sent to that assistant's provider and handled under your
+> account and their terms, not by this app. Anyone who has the token has the same access,
+> so treat it like a password, and remove MCP_TOKEN to switch the endpoint off. With no
+> token set, the endpoint is off.
 
 ## What this build does NOT protect against
 
@@ -47,9 +55,11 @@ so there is exactly one place this claim is written and both surfaces quote it.
   can, in principle, be reached by that third party, by anyone who compromises the
   account, or by legal process served on the provider. A database running on this machine
   avoids this particular exposure, but not the others below.
-- **No app lock.** There is no PIN, biometric gate, or any other screen between opening
-  this app and seeing everything in it. Anyone who can unlock this device can open this
-  app.
+- **The app lock is a screen lock only.** There is an optional 6-digit PIN screen lock.
+  It only hides the app's screens in the browser; it adds no protection to the stored data
+  or the database, and the MCP endpoint does not use it (the MCP token is its own
+  credential). Without a PIN set, anyone who can unlock this device can open this app and
+  see everything in it.
 - **No per-user access control inside the app.** This is a single-user build with no
   accounts and no authentication in the app itself. The access boundaries are your
   device's security and, if you use a hosted database, that provider account's security —
