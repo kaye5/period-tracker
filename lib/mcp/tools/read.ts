@@ -23,14 +23,22 @@ export const PREDICTION_NOTE = "Present predictions as ranges with their confide
 export const TIME_ZONE_NOTE =
   'If timeZoneSource is "fallback_utc", say the day was worked out in UTC and suggest passing timeZone.';
 
-/** Resolve the zone → load → present → wrap in the time envelope. */
+export const READ_FAILED = "Couldn't read your data right now — please try again.";
+
+/** Resolve the zone → load → present → wrap in the time envelope. Any unexpected error becomes
+ * a plain-language tool error; details go to the server log only. */
 export async function runReadTool(tz: string | undefined, present: (view: CycleView) => object) {
-  const resolved = await resolveMcpTimeZone(tz);
-  const data = await loadCycleData(resolved.timeZone);
-  if (!data.profile || !data.output || !data.calendar) return toolError(NO_PROFILE);
-  // ponytail: envelope `now` is read just after the load's own Date.now(); they can straddle
-  // midnight by milliseconds. Pass one nowMs into loadCycleData if that ever matters.
-  return toolResult(envelope(timeContext(resolved, Date.now()), present(data as CycleView)));
+  try {
+    const resolved = await resolveMcpTimeZone(tz);
+    const data = await loadCycleData(resolved.timeZone);
+    if (!data.profile || !data.output || !data.calendar) return toolError(NO_PROFILE);
+    // ponytail: envelope `now` is read just after the load's own Date.now(); they can straddle
+    // midnight by milliseconds. Pass one nowMs into loadCycleData if that ever matters.
+    return toolResult(envelope(timeContext(resolved, Date.now()), present(data as CycleView)));
+  } catch (err) {
+    console.error("MCP read tool failed", err);
+    return toolError(READ_FAILED);
+  }
 }
 
 const SIMPLE_TOOLS: [name: string, title: string, description: string, present: (v: CycleView) => object][] = [

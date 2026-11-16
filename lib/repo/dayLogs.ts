@@ -24,7 +24,7 @@ import {
   getDb,
   type Db,
 } from "@/lib/db";
-import { fromRows, toRows, type DayLogChildValues } from "@/lib/repo/dayLogs.mapping";
+import { fromRows, toRows, type DayLogChildValues, type DayLogRows } from "@/lib/repo/dayLogs.mapping";
 
 /** Groups rows of `{ date, value }` shape into a `Map<date, value[]>`, preserving
  * insertion order within each date's list. Used to assemble each child table's rows
@@ -119,37 +119,67 @@ export async function listAllDayLogs(tx?: Db): Promise<DayLog[]> {
  * `input` before any of this runs, so an invalid `DayLog` throws before touching the
  * database at all. */
 export async function upsertDayLog(input: DayLog, tx?: Db): Promise<DayLog> {
-  const { row, symptoms, moods, painSites, interference } = toRows(input);
+  const rows = toRows(input);
   const db = tx ?? getDb();
+  await db.transaction((t) => writeDayLogRows(t, rows));
+  return fromRows(rows.row, rows);
+}
 
+type Tx = Parameters<Parameters<Db["transaction"]>[0]>[0];
+
+/** `upsertDayLog`'s writes, run inside the caller's transaction `t`. */
+async function writeDayLogRows(t: Tx, { row, symptoms, moods, painSites, interference }: DayLogRows): Promise<void> {
   // Save time is a UTC instant (docs/MCP-SPEC.md Part A), set on insert and update alike.
   const values = { ...row, updatedAt: new Date() };
 
-  await db.transaction(async (t) => {
-    await t.insert(dayLogs).values(values).onDuplicateKeyUpdate({ set: values });
+  await t.insert(dayLogs).values(values).onDuplicateKeyUpdate({ set: values });
 
-    await t.delete(dayLogSymptoms).where(eq(dayLogSymptoms.date, row.date));
-    await t.delete(dayLogMoods).where(eq(dayLogMoods.date, row.date));
-    await t.delete(dayLogPainSites).where(eq(dayLogPainSites.date, row.date));
-    await t.delete(dayLogPainInterference).where(eq(dayLogPainInterference.date, row.date));
+  await t.delete(dayLogSymptoms).where(eq(dayLogSymptoms.date, row.date));
+  await t.delete(dayLogMoods).where(eq(dayLogMoods.date, row.date));
+  await t.delete(dayLogPainSites).where(eq(dayLogPainSites.date, row.date));
+  await t.delete(dayLogPainInterference).where(eq(dayLogPainInterference.date, row.date));
 
-    if (symptoms.length > 0) {
-      await t.insert(dayLogSymptoms).values(symptoms.map((symptom) => ({ date: row.date, symptom })));
-    }
-    if (moods.length > 0) {
-      await t.insert(dayLogMoods).values(moods.map((mood) => ({ date: row.date, mood })));
-    }
-    if (painSites.length > 0) {
-      await t.insert(dayLogPainSites).values(painSites.map((site) => ({ date: row.date, site })));
-    }
-    if (interference.length > 0) {
-      await t
-        .insert(dayLogPainInterference)
-        .values(interference.map((value) => ({ date: row.date, interference: value })));
-    }
+  if (symptoms.length > 0) {
+    await t.insert(dayLogSymptoms).values(symptoms.map((symptom) => ({ date: row.date, symptom })));
+  }
+  if (moods.length > 0) {
+    await t.insert(dayLogMoods).values(moods.map((mood) => ({ date: row.date, mood })));
+  }
+  if (painSites.length > 0) {
+    await t.insert(dayLogPainSites).values(painSites.map((site) => ({ date: row.date, site })));
+  }
+  if (interference.length > 0) {
+    await t
+      .insert(dayLogPainInterference)
+      .values(interference.map((value) => ({ date: row.date, interference: value })));
+  }
+}
+
+/** `upsertDayLog`, but only if the row's `updated_at` is still `expectedUpdatedAt` (epoch ms;
+ * null = no row, or a row saved before `updated_at` existed) — optimistic concurrency for
+ * the MCP write tools, which load, merge and save the whole log. The row is read with
+ * `SELECT … FOR UPDATE` (MySQL InnoDB, and TiDB's default pessimistic mode), so a concurrent
+ * save either finishes first (→ `{ ok: false }`, nothing written) or waits for this one.
+ * When no row exists, two racing inserts can still fail with a deadlock or duplicate-key
+ * error; callers treat that like `{ ok: false }` and retry. */
+export async function upsertDayLogIfUnchanged(
+  input: DayLog,
+  expectedUpdatedAt: number | null,
+  tx?: Db,
+): Promise<{ ok: true; dayLog: DayLog } | { ok: false }> {
+  const rows = toRows(input);
+  const db = tx ?? getDb();
+  const written = await db.transaction(async (t) => {
+    const [current] = await t
+      .select({ updatedAt: dayLogs.updatedAt })
+      .from(dayLogs)
+      .where(eq(dayLogs.date, rows.row.date))
+      .for("update");
+    if ((current?.updatedAt?.getTime() ?? null) !== expectedUpdatedAt) return false;
+    await writeDayLogRows(t, rows);
+    return true;
   });
-
-  return fromRows(row, { symptoms, moods, painSites, interference });
+  return written ? { ok: true, dayLog: fromRows(rows.row, rows) } : { ok: false };
 }
 
 /** When the log for `date` was last saved, as epoch ms (UTC), or null if there is no log
@@ -158,6 +188,14 @@ export async function getDayLogUpdatedAt(date: CivilDate, tx?: Db): Promise<numb
   const db = tx ?? getDb();
   const [row] = await db.select({ updatedAt: dayLogs.updatedAt }).from(dayLogs).where(eq(dayLogs.date, date));
   return row?.updatedAt?.getTime() ?? null;
+}
+
+/** Every log's `updated_at` (epoch ms, or null if saved before it existed), by date — the
+ * versions the MCP write tools pass to `upsertDayLogIfUnchanged`. */
+export async function listDayLogUpdatedAt(tx?: Db): Promise<Map<CivilDate, number | null>> {
+  const db = tx ?? getDb();
+  const rows = await db.select({ date: dayLogs.date, updatedAt: dayLogs.updatedAt }).from(dayLogs);
+  return new Map(rows.map((r) => [r.date as CivilDate, r.updatedAt?.getTime() ?? null]));
 }
 
 /** Hard delete — SPEC.md's data-layer brief: "Delete endpoint must actually drop the
