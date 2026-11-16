@@ -19,4 +19,9 @@ async function handle(request: Request): Promise<Response> {
   return transport.handleRequest(request);
 }
 
-export { handle as POST, handle as GET, handle as DELETE };
+// Stateless: no server-initiated messages, so no SSE stream to offer (Streamable HTTP allows 405).
+export async function GET(request: Request): Promise<Response> {
+  return checkMcpAuth(request) ?? new Response(null, { status: 405, headers: { Allow: "POST, DELETE" } });
+}
+
+export { handle as POST, handle as DELETE };
