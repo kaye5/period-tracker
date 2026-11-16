@@ -134,11 +134,15 @@ DEC-016 and [`docs/MCP-SPEC.md`](docs/MCP-SPEC.md).
 
 2. Make sure the deploy database is migrated first (see "Upgrading or deploying" above).
 
-3. Connect Claude Code:
+3. Connect Claude Code. The repo's `.mcp.json` already defines the `period-tracker` server;
+   it reads the token and URL from your environment, so no secret is committed. Export the
+   same token in the shell you start Claude Code from (and the URL if it isn't the local
+   dev server), then approve the server when Claude Code asks:
 
    ```bash
-   claude mcp add --transport http cycle https://<host>/api/mcp \
-     --header "Authorization: Bearer <MCP_TOKEN>"
+   export MCP_TOKEN=<same value as the server's MCP_TOKEN>
+   export PERIOD_TRACKER_MCP_URL=https://<host>/api/mcp   # default: http://localhost:3000/api/mcp
+   claude
    ```
 
 Anything the client reads through the endpoint is sent to that AI client's provider. Treat
