@@ -208,9 +208,12 @@ export const profile = mysqlTable("profile", {
   notifLoggingReminder: boolean("notif_logging_reminder").notNull().default(false),
   notifHealthAwareness: boolean("notif_health_awareness").notNull().default(false),
   notifPrivateWording: boolean("notif_private_wording").notNull().default(true),
-  // Last IANA time zone the browser reported (docs/MCP-SPEC.md Part A). Not part of the
-  // `Profile` domain object — read/written only via getUserTimeZone/setUserTimeZone.
+  // The user's IANA time zone (docs/MCP-SPEC.md Part A): the last one the browser reported,
+  // or one picked in Settings when `time_zone_manual` is set (auto-sync then leaves it
+  // alone). Not part of the `Profile` domain object — read/written only via the
+  // getUserTimeZone/getTimeZoneSetting/setUserTimeZone helpers in lib/repo/profile.ts.
   timeZone: varchar("time_zone", { length: 64 }),
+  timeZoneManual: boolean("time_zone_manual").notNull().default(false),
 });
 
 // ============================================================================

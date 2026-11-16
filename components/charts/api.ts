@@ -13,6 +13,7 @@
 import { todayInZone, type CivilDate } from "@/lib/date/civil";
 import type { DayLog, EngineOutput } from "@/lib/domain/types";
 import type { EngineResult } from "@/lib/engine";
+import { cookieValue, isValidTimeZone, TZ_COOKIE } from "@/lib/time/userTimeZone";
 
 /**
  * `/api/compute` returns `EngineOutput` today and will return the richer `EngineResult`
@@ -116,6 +117,18 @@ export async function deleteExcludeCycle(cycleStartDate: CivilDate): Promise<voi
  * function allowed to turn it into a civil date).
  */
 export function clientToday(): CivilDate {
-  const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-  return todayInZone(tz, Date.now());
+  return todayInZone(clientTimeZone(), Date.now());
+}
+
+/** The `tz` cookie the server also reads (so a zone picked in Settings applies to client
+ * writes too), else the browser's own zone. */
+function clientTimeZone(): string {
+  const raw = cookieValue(document.cookie, TZ_COOKIE);
+  let tz: string | undefined;
+  try {
+    tz = raw === undefined ? undefined : decodeURIComponent(raw);
+  } catch {
+    tz = undefined;
+  }
+  return isValidTimeZone(tz) ? tz : Intl.DateTimeFormat().resolvedOptions().timeZone;
 }

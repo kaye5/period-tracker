@@ -9,7 +9,7 @@
     "lint": "eslint",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:integration": "DATABASE_URL=mysql://app:app_password@127.0.0.1:3306/period_tracker_test vitest run lib/repo/__integration__",
+    "test:integration": "DATABASE_URL=mysql://root:root@127.0.0.1:3306/period_tracker_test vitest run lib/repo/__integration__",
     "typecheck": "tsc --noEmit",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "node --env-file-if-exists=.env.local --import ./scripts/register-ts-loader.mjs ./lib/db/migrate.ts",

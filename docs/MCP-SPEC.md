@@ -86,6 +86,12 @@ cookie it calls `POST /api/time-zone { timeZone }`, which validates it, sets the
 then calls `router.refresh()` so server-rendered "today" updates. Travelling updates it
 automatically on the next app open.
 
+**Picking a zone by hand (Settings → Time zone):** turning off "Set automatically" saves the
+chosen zone with `profile.time_zone_manual = true` (`PUT /api/time-zone { timeZone, manual }`).
+While it is set, `POST /api/time-zone` keeps that zone and answers by pointing the `tz` cookie
+at it, plus a `tz_manual` cookie (1 day) that makes `TimeZoneSync` skip the sync. Client-side
+"today" (`clientToday`) reads the `tz` cookie first, so client writes use the same zone.
+
 **`day_logs.updated_at`:** set to the current UTC instant on every save (app or MCP). Returned
 by MCP so a client can say when something was recorded.
 

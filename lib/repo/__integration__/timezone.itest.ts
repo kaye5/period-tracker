@@ -7,7 +7,13 @@
  */
 import { afterAll, beforeAll, beforeEach, expect } from "vitest";
 import { sql } from "drizzle-orm";
-import { DEFAULT_PROFILE, getUserTimeZone, setUserTimeZone, upsertProfile } from "@/lib/repo/profile";
+import {
+  DEFAULT_PROFILE,
+  getTimeZoneSetting,
+  getUserTimeZone,
+  setUserTimeZone,
+  upsertProfile,
+} from "@/lib/repo/profile";
 import { getDayLogUpdatedAt, upsertDayLog } from "@/lib/repo/dayLogs";
 import type { DayLog } from "@/lib/domain/types";
 import { parseCivil } from "@/lib/date/civil";
@@ -53,6 +59,19 @@ describeIfDb("time zone columns (integration)", () => {
 
     await upsertProfile(DEFAULT_PROFILE);
     expect(await getUserTimeZone()).toBe("Asia/Bangkok");
+  });
+
+  itIfDb("stores whether the zone was picked by hand; upsertProfile leaves it untouched", async () => {
+    expect(await getTimeZoneSetting()).toBeNull();
+    await upsertProfile(DEFAULT_PROFILE);
+    expect(await getTimeZoneSetting()).toEqual({ timeZone: null, manual: false });
+
+    await setUserTimeZone("Asia/Tokyo", true);
+    await upsertProfile(DEFAULT_PROFILE);
+    expect(await getTimeZoneSetting()).toEqual({ timeZone: "Asia/Tokyo", manual: true });
+
+    await setUserTimeZone("Europe/Berlin");
+    expect(await getTimeZoneSetting()).toEqual({ timeZone: "Europe/Berlin", manual: false });
   });
 
   itIfDb("getDayLogUpdatedAt is null for a missing log", async () => {

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   canonicalTimeZone,
+  cookieValue,
   isValidTimeZone,
   resolveTimeZone,
   timeZoneCookieMatches,
@@ -74,4 +75,14 @@ describe("timeZoneCookieMatches", () => {
       expect(timeZoneCookieMatches(cookie, "Asia/Bangkok")).toBe(false);
     },
   );
+});
+
+describe("cookieValue", () => {
+  it("finds a cookie by exact name, not by prefix", () => {
+    const all = "tz_manual=1; tz=Asia%2FBangkok; other=x";
+    expect(cookieValue(all, "tz")).toBe("Asia%2FBangkok");
+    expect(cookieValue(all, "tz_manual")).toBe("1");
+    expect(cookieValue(all, "missing")).toBeUndefined();
+    expect(cookieValue("", "tz")).toBeUndefined();
+  });
 });

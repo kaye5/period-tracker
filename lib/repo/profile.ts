@@ -91,13 +91,28 @@ export async function getUserTimeZone(tx?: Db): Promise<string | null> {
   return row?.timeZone ?? null;
 }
 
-/** Stores `tz` on the existing profile row. Does nothing (returns false) when no profile
+/** The stored zone plus whether it was picked by hand in Settings (`manual`), or null when
+ * no profile exists. */
+export async function getTimeZoneSetting(
+  tx?: Db,
+): Promise<{ timeZone: string | null; manual: boolean } | null> {
+  const db = tx ?? getDb();
+  const [row] = await db
+    .select({ timeZone: profileTable.timeZone, manual: profileTable.timeZoneManual })
+    .from(profileTable)
+    .where(eq(profileTable.id, PROFILE_ID))
+    .limit(1);
+  return row ?? null;
+}
+
+/** Stores `tz` on the existing profile row, and whether it was picked by hand (`manual`;
+ * default false = reported by the browser). Does nothing (returns false) when no profile
  * exists yet — onboarding creates the row, not this. */
-export async function setUserTimeZone(tz: string, tx?: Db): Promise<boolean> {
+export async function setUserTimeZone(tz: string, manual = false, tx?: Db): Promise<boolean> {
   const db = tx ?? getDb();
   const [result] = await db
     .update(profileTable)
-    .set({ timeZone: tz })
+    .set({ timeZone: tz, timeZoneManual: manual })
     .where(eq(profileTable.id, PROFILE_ID));
   return result.affectedRows === 1;
 }

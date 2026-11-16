@@ -8,7 +8,7 @@ import { deleteCalibrationState } from "@/lib/repo/calibration";
 import { deleteSecurity } from "@/lib/repo/security";
 import { handleUnexpected, jsonError } from "@/app/api/_lib/http";
 import { requireApiUnlock } from "@/lib/security/guard";
-import { TZ_COOKIE } from "@/lib/time/userTimeZone";
+import { TZ_COOKIE, TZ_MANUAL_COOKIE } from "@/lib/time/userTimeZone";
 
 const CONFIRM_TOKEN = "DELETE_ALL_DATA";
 const bodySchema = z.object({ confirm: z.literal(CONFIRM_TOKEN) });
@@ -54,6 +54,7 @@ export async function POST(request: NextRequest) {
     // The profile (and its time_zone) is gone: drop the cookie too, so TimeZoneSync stores the
     // zone again once onboarding recreates the profile.
     res.cookies.delete(TZ_COOKIE);
+    res.cookies.delete(TZ_MANUAL_COOKIE);
     return res;
   } catch (err) {
     if (err instanceof SyntaxError) {

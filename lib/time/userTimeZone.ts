@@ -8,6 +8,19 @@
  * code can import it without pulling in server-only modules. */
 export const TZ_COOKIE = "tz";
 
+/** Set next to `tz` while the zone is picked by hand in Settings, so TimeZoneSync stops
+ * replacing it with the browser's zone. */
+export const TZ_MANUAL_COOKIE = "tz_manual";
+
+/** The raw value of cookie `name` in a `document.cookie` string, if present. */
+export function cookieValue(cookies: string, name: string): string | undefined {
+  const prefix = `${name}=`;
+  return cookies
+    .split("; ")
+    .find((c) => c.startsWith(prefix))
+    ?.slice(prefix.length);
+}
+
 export type TimeZoneSource = "input" | "cookie" | "profile" | "fallback_utc";
 
 /** A non-empty string of at most 64 chars that Intl accepts as a time zone. */

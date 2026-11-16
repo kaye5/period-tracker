@@ -11,11 +11,14 @@
  * own comment — so every write here is a full replace built from the last-fetched
  * profile plus the one field just changed).
  */
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { FileTextIcon, Trash2Icon } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { parseCivil, todayInZone, type CivilDate } from "@/lib/date/civil";
+import { parseCivil, type CivilDate } from "@/lib/date/civil";
+import { isValidTimeZone } from "@/lib/time/userTimeZone";
+import { clientToday } from "@/components/charts/api";
 import type { HormonalMethodKind, Profile, Settings } from "@/lib/domain/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -61,17 +64,12 @@ const INPUT = "h-chip rounded-xl px-3 text-body tabular-nums md:text-body";
 /** Switch lists read as one list: hairline dividers instead of loose gaps. */
 const ROW_LIST = "gap-0 divide-y divide-border";
 
-function todayCivil(): CivilDate {
-  const tz = typeof Intl !== "undefined" ? Intl.DateTimeFormat().resolvedOptions().timeZone : "UTC";
-  return todayInZone(tz, Date.now());
-}
-
 export function SettingsScreen() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleted, setDeleted] = useState(false);
-  const today = todayCivil();
+  const today = clientToday();
 
   useEffect(() => {
     fetch("/api/profile")
@@ -161,6 +159,10 @@ export function SettingsScreen() {
 
       <SettingsSection id="settings-features" title="Features">
         <FeaturesCard profile={profile} onSave={save} />
+      </SettingsSection>
+
+      <SettingsSection id="settings-time-zone" title="Time zone">
+        <TimeZoneCard onSaveState={setSaveState} />
       </SettingsSection>
 
       <SettingsSection id="settings-notifications" title="Notifications">
@@ -673,6 +675,133 @@ function FeaturesCard({ profile, onSave }: { profile: Profile; onSave: (p: Profi
               onCheckedChange={(healthAwarenessEnabled) => setSettings({ healthAwarenessEnabled })}
             />
           </Field>
+        </FieldGroup>
+      </CardContent>
+    </Card>
+  );
+}
+
+/**
+ * The zone "today" is worked out in — in the app and in MCP answers. Automatic (default)
+ * follows this device via TimeZoneSync; turning it off pins a zone picked from the list,
+ * committed on blur like ReportedNumberField so a half-typed name is never saved.
+ */
+function TimeZoneCard({ onSaveState }: { onSaveState: (s: SaveState) => void }) {
+  const router = useRouter();
+  const [setting, setSetting] = useState<{ timeZone: string | null; manual: boolean } | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const deviceZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const zones = useMemo(() => Intl.supportedValuesOf("timeZone"), []);
+
+  useEffect(() => {
+    fetch("/api/time-zone")
+      .then((res) => res.json())
+      .then((data: { timeZone: string | null; manual: boolean }) => setSetting(data))
+      .catch(() => onSaveState("error"));
+  }, [onSaveState]);
+
+  async function save(timeZone: string, manual: boolean) {
+    const previous = setting;
+    setSetting({ timeZone, manual });
+    onSaveState("saving");
+    try {
+      const res = await fetch("/api/time-zone", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ timeZone, manual }),
+      });
+      if (!res.ok) throw new Error("save failed");
+      const saved = (await res.json()) as { timeZone: string; manual: boolean };
+      setSetting(saved);
+      onSaveState("saved");
+      router.refresh();
+    } catch {
+      setSetting(previous);
+      onSaveState("error");
+    }
+  }
+
+  if (!setting) {
+    return (
+      <Card>
+        <CardContent className="flex min-h-chip items-center gap-2 text-label font-normal text-muted-foreground">
+          <Spinner />
+          Loading…
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const current = setting.timeZone ?? deviceZone;
+
+  return (
+    <Card>
+      <CardContent>
+        <FieldGroup className={ROW_LIST}>
+          <Field orientation="horizontal" className={cn(ROW, setting.manual ? "pb-3" : undefined)}>
+            <FieldContent>
+              <FieldLabel htmlFor="time-zone-auto" className={ROW_LABEL}>
+                Set automatically
+              </FieldLabel>
+              <FieldDescription>
+                {setting.manual
+                  ? `Off. "Today" stays in ${current} wherever you open the app.`
+                  : `Follows this device's time zone (${deviceZone}).`}
+              </FieldDescription>
+            </FieldContent>
+            <Switch
+              id="time-zone-auto"
+              checked={!setting.manual}
+              onCheckedChange={(auto) => {
+                setError(null);
+                void save(auto ? deviceZone : current, !auto);
+              }}
+            />
+          </Field>
+
+          {setting.manual ? (
+            <Field className="pt-3">
+              <FieldLabel htmlFor="time-zone-manual" className={SUB_LABEL}>
+                Time zone
+              </FieldLabel>
+              <Input
+                key={current}
+                id="time-zone-manual"
+                list="time-zone-options"
+                autoComplete="off"
+                spellCheck={false}
+                aria-invalid={error !== null}
+                aria-describedby={error !== null ? "time-zone-error" : undefined}
+                className={cn(INPUT, "w-full")}
+                defaultValue={current}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") e.currentTarget.blur();
+                }}
+                onBlur={(e) => {
+                  const next = e.target.value.trim();
+                  if (!isValidTimeZone(next)) {
+                    e.target.value = current;
+                    setError("Pick a time zone from the list, e.g. Asia/Bangkok.");
+                    return;
+                  }
+                  setError(null);
+                  if (next !== current) void save(next, true);
+                }}
+              />
+              <datalist id="time-zone-options">
+                {zones.map((z) => (
+                  <option key={z} value={z} />
+                ))}
+              </datalist>
+              {error !== null ? (
+                <FieldDescription id="time-zone-error" className="text-destructive">
+                  {error}
+                </FieldDescription>
+              ) : (
+                <FieldDescription>Used for &quot;today&quot; in the app and in MCP answers.</FieldDescription>
+              )}
+            </Field>
+          ) : null}
         </FieldGroup>
       </CardContent>
     </Card>

@@ -1,0 +1,1 @@
+ALTER TABLE `profile` ADD `time_zone_manual` boolean DEFAULT false NOT NULL;
