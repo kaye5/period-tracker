@@ -115,6 +115,7 @@ describe("planWrite — period", () => {
 
   it("log_period_end without a date and no open period is refused", () => {
     expect(planWrite(ctx(), { tool: "log_period_end" })).toEqual({ ok: false, error: NO_OPEN_PERIOD });
+    expect(NO_OPEN_PERIOD).toBe("No ongoing period found to end — it may already be marked as ended (see get_today).");
   });
 
   it("log_period_end with a date marks that day", () => {

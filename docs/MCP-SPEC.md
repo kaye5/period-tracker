@@ -154,7 +154,7 @@ saves with `upsertDayLog`, and returns (inside the time envelope)
 |---|---|---|
 | `log_period_start` | `date?` | Day becomes a period day and the first day (`periodBoundary: "start"`). |
 | `log_period_day` | `date?`, `flow?: FlowLevel` | Day becomes a period day; sets flow if given. ("Still on my period.") |
-| `log_period_end` | `date?` | With `date`: that day is marked the last day (`periodBoundary: "end"`, period day). Without `date`: today if today is a period day; otherwise the last recorded period day of the open period (the same rule as Today's "Ended …" button, `quickPeriodStatus`). If there is no open period → error "No ongoing period found to end." |
+| `log_period_end` | `date?` | With `date`: that day is marked the last day (`periodBoundary: "end"`, period day). Without `date`: today if today is a period day; otherwise the last recorded period day of the open period (the same rule as Today's "Ended …" button, `quickPeriodStatus`). If there is no open period → error "No ongoing period found to end — it may already be marked as ended (see get_today)." |
 | `log_spotting` | `date?` | Day becomes spotting (`bleeding: "spotting"`), which never starts or extends a period (existing engine rule). Clears `flow` and `periodBoundary` (period-only fields). If the day was a period day, the result says it was changed from period to spotting. |
 | `log_mood` | `moods: MoodId[]` (≥1), `mode?: "add" \| "remove"` (default `add`), `date?` | Adds/removes exactly those moods. Never toggles, so a client retry cannot undo a save. |
 | `log_symptoms` | `symptoms: SymptomId[]` (≥1), `mode?`, `date?` | Same, for symptoms. Tier C symptoms are accepted only if enabled in Settings. |

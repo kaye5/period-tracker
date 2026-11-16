@@ -12,7 +12,7 @@ import { applyQuickAction, emptyDayLog, quickPeriodStatus, type QuickAction } fr
 
 export const FUTURE_DATE = "Can't log a future date.";
 export const INVALID_DATE = "date must be a valid YYYY-MM-DD calendar date.";
-export const NO_OPEN_PERIOD = "No ongoing period found to end.";
+export const NO_OPEN_PERIOD = "No ongoing period found to end — it may already be marked as ended (see get_today).";
 export const HAS_DATA =
   "This day already has recorded data, and nothing to report would replace it. Use log_period_day, log_spotting, log_mood or log_symptoms to add to it instead.";
 
