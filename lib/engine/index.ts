@@ -115,6 +115,8 @@ export {
   buildVariabilityHeadline,
   predictedVsActualSeries,
   computeCycleStatistics,
+  computeMoodsByCycleDay,
+  classifyCycleDay,
   medianCycleLengthDifference as medianCycleLengthDifferenceOfCycles,
 } from "@/lib/engine/stats";
 export type {
@@ -123,6 +125,7 @@ export type {
   SymptomFrequency,
   CycleDayWindowLabel,
   SymptomCycleDayPoint,
+  MoodCycleDayPoint,
   MissingDataIndicator,
   ResolvedPredictionLike,
   PredictedVsActualPoint,

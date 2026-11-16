@@ -55,6 +55,7 @@ import type {
   Cycle,
   DayLog,
   FlowLevel,
+  MoodId,
   StatSummary,
   SymptomId,
 } from "@/lib/domain/types";
@@ -350,7 +351,7 @@ const FORWARD_WINDOWS: readonly LabeledWindow[] = [
  * "Every window is defined on a completed cycle" (02-symptom-insights.md §1.4), and a
  * backward window computed against a not-yet-known next start would be meaningless.
  */
-function classifyCycleDay(
+export function classifyCycleDay(
   cycle: Cycle,
   date: CivilDate,
   isBleedingDay: boolean,
@@ -429,6 +430,88 @@ function computeSymptomsByCycleDay(
         const known = knownDays.get(k) ?? 0;
         if (known === 0) continue; // omit rather than show a fake zero for unobserved offsets
         points.push({ symptom: s, window: label, offset, occurrences: occurrences.get(k) ?? 0, knownDays: known });
+      }
+    }
+  }
+  return points;
+}
+
+// ============================================================================
+// Moods by cycle day — descriptive counts only, same windows as symptoms
+// ============================================================================
+
+/** `MoodId` declaration order (lib/domain/types.ts). */
+const ALL_MOODS: readonly MoodId[] = [
+  "calm",
+  "happy",
+  "energetic",
+  "irritable",
+  "sad",
+  "anxious",
+  "sensitive",
+  "low",
+];
+
+export interface MoodCycleDayPoint {
+  mood: MoodId;
+  window: CycleDayWindowLabel;
+  /** Signed cycle-day offset: negative for backward windows, positive for forward. */
+  offset: number;
+  occurrences: number;
+  /** Days at this exact offset where at least one mood was logged (see the known-day rule
+   * on `computeMoodsByCycleDay`). */
+  knownDays: number;
+}
+
+/**
+ * Mirrors `computeSymptomsByCycleDay` (completed cycles only, same `classifyCycleDay`,
+ * same bleeding-day input) except for the KNOWN-DAY RULE: a day is known for every mood
+ * iff at least one mood was logged that day. `nothingToReport` says nothing about mood,
+ * so it does not make a day known here. Not part of `CycleStatistics`; callers invoke it
+ * directly.
+ */
+export function computeMoodsByCycleDay(
+  cycles: readonly Cycle[],
+  dayLogs: readonly DayLog[],
+): MoodCycleDayPoint[] {
+  const byDate = new Map<CivilDate, DayLog>();
+  for (const log of dayLogs) byDate.set(log.date, log);
+
+  type Key = string;
+  const key = (m: MoodId, label: CycleDayWindowLabel, offset: number): Key =>
+    `${m}|${label}|${offset}`;
+  const occurrences = new Map<Key, number>();
+  const knownDays = new Map<Key, number>();
+
+  for (const cycle of cycles) {
+    if (cycle.nextStartDate === null) continue;
+    const lastDay = addDays(cycle.nextStartDate, -1);
+    if (compare(lastDay, cycle.startDate) < 0) continue; // zero-length guard
+    for (const date of rangeInclusive(cycle.startDate, lastDay)) {
+      const log = byDate.get(date);
+      const isBleedingDay = log !== undefined && log.bleeding !== "none";
+      const classification = classifyCycleDay(cycle, date, isBleedingDay);
+      if (classification === null || log === undefined) continue;
+
+      const moods = log.mood ?? [];
+      if (moods.length === 0) continue; // unknown for every mood
+      for (const m of ALL_MOODS) {
+        const k = key(m, classification.label, classification.offset);
+        knownDays.set(k, (knownDays.get(k) ?? 0) + 1);
+        if (moods.includes(m)) occurrences.set(k, (occurrences.get(k) ?? 0) + 1);
+      }
+    }
+  }
+
+  const points: MoodCycleDayPoint[] = [];
+  for (const m of ALL_MOODS) {
+    for (const { label, window } of [...BACKWARD_WINDOWS, ...FORWARD_WINDOWS]) {
+      const [, lo, hi] = window;
+      for (let offset = lo; offset <= hi; offset++) {
+        const k = key(m, label, offset);
+        const known = knownDays.get(k) ?? 0;
+        if (known === 0) continue; // omit rather than show a fake zero for unobserved offsets
+        points.push({ mood: m, window: label, offset, occurrences: occurrences.get(k) ?? 0, knownDays: known });
       }
     }
   }

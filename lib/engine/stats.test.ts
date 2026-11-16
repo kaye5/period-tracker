@@ -9,7 +9,9 @@ import {
   REGULARITY_TYPICAL_VARIATION_MAX_DAYS,
   REGULARITY_VERY_CONSISTENT_MAX_DAYS,
   buildVariabilityHeadline,
+  classifyCycleDay,
   computeCycleStatistics,
+  computeMoodsByCycleDay,
   medianCycleLengthDifference,
   predictedVsActualSeries,
   regularityBandFromMedianCld,
@@ -376,6 +378,86 @@ describe("symptomsByCycleDay", () => {
     const cycle = makeCycle(0, d("2026-07-01"), 40);
     const stats = computeCycleStatistics({ cycles: [cycle], episodes: [], dayLogs: [] });
     expect(stats.symptomsByCycleDay).toHaveLength(0);
+  });
+});
+
+describe("computeMoodsByCycleDay", () => {
+  it("counts a mood on premenstrual offset -1", () => {
+    const cycle = makeCycle(0, d("2026-07-01"), 28); // nextStartDate = 2026-07-29
+    const day = addDays(cycle.nextStartDate as CivilDate, -1);
+    const points = computeMoodsByCycleDay([cycle], [dayLog(day, { mood: ["irritable", "low"] })]);
+    expect(points.filter((p) => p.occurrences > 0)).toEqual([
+      { mood: "irritable", window: "premenstrual", offset: -1, occurrences: 1, knownDays: 1 },
+      { mood: "low", window: "premenstrual", offset: -1, occurrences: 1, knownDays: 1 },
+    ]);
+  });
+
+  it("makes a day with any mood known for every mood", () => {
+    const cycle = makeCycle(0, d("2026-07-01"), 28);
+    const day = addDays(cycle.nextStartDate as CivilDate, -2);
+    const points = computeMoodsByCycleDay([cycle], [dayLog(day, { mood: ["calm"] })]);
+    expect(points.map((p) => p.mood)).toEqual([
+      "calm", "happy", "energetic", "irritable", "sad", "anxious", "sensitive", "low",
+    ]);
+    expect(points.find((p) => p.mood === "sad")).toMatchObject({ occurrences: 0, knownDays: 1 });
+  });
+
+  it("does not treat a symptoms-only day as known for moods", () => {
+    const cycle = makeCycle(0, d("2026-07-01"), 28);
+    const day = addDays(cycle.nextStartDate as CivilDate, -3);
+    const points = computeMoodsByCycleDay([cycle], [dayLog(day, { symptoms: ["headache"] })]);
+    expect(points).toHaveLength(0);
+  });
+
+  it("does not treat a nothing-to-report day as known for moods", () => {
+    const cycle = makeCycle(0, d("2026-07-01"), 28);
+    const day = addDays(cycle.nextStartDate as CivilDate, -3);
+    const points = computeMoodsByCycleDay([cycle], [dayLog(day, { nothingToReport: true, mood: [] })]);
+    expect(points).toHaveLength(0);
+  });
+
+  it("ignores the in-progress cycle", () => {
+    const cycle = makeCycle(0, d("2026-07-01"), null);
+    const points = computeMoodsByCycleDay(
+      [cycle],
+      [dayLog(addDays(cycle.startDate, 1), { mood: ["low"], bleeding: "menstrual" })],
+    );
+    expect(points).toHaveLength(0);
+  });
+
+  it("excludes bleeding days from the follicular reference window", () => {
+    const cycle = makeCycle(0, d("2026-07-01"), 40);
+    const bleeding = addDays(cycle.startDate, 5); // forward day 6, inside 4..10
+    const dry = addDays(cycle.startDate, 6); // forward day 7
+    const points = computeMoodsByCycleDay(
+      [cycle],
+      [dayLog(bleeding, { mood: ["sad"], bleeding: "menstrual" }), dayLog(dry, { mood: ["happy"] })],
+    );
+    expect(points.every((p) => p.window === "follicular_reference" && p.offset === 7)).toBe(true);
+    expect(points.find((p) => p.mood === "sad")).toMatchObject({ occurrences: 0, knownDays: 1 });
+  });
+
+  it("leaves symptomsByCycleDay unchanged by logged moods", () => {
+    const cycle = makeCycle(0, d("2026-07-01"), 28);
+    const day = addDays(cycle.nextStartDate as CivilDate, -1);
+    const withoutMood = computeCycleStatistics({
+      cycles: [cycle], episodes: [], dayLogs: [dayLog(day, { symptoms: ["headache"] })],
+    });
+    const withMood = computeCycleStatistics({
+      cycles: [cycle], episodes: [], dayLogs: [dayLog(day, { symptoms: ["headache"], mood: ["low"] })],
+    });
+    expect(withMood.symptomsByCycleDay).toEqual(withoutMood.symptomsByCycleDay);
+    expect(withMood.symptomsByCycleDay).toEqual([
+      { symptom: "headache", window: "premenstrual", offset: -1, occurrences: 1, knownDays: 1 },
+    ]);
+  });
+
+  it("exports classifyCycleDay unchanged (backward offset on a completed cycle)", () => {
+    const cycle = makeCycle(0, d("2026-07-01"), 28);
+    expect(classifyCycleDay(cycle, addDays(cycle.nextStartDate as CivilDate, -1), false)).toEqual({
+      label: "premenstrual",
+      offset: -1,
+    });
   });
 });
 
